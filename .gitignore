@@ -1,0 +1,46 @@
+# python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+*.log
+
+# secrete
+.env
+.env.local
+.env.production
+.env.*.local
+
+# db
+*.db
+*.sqlite3
+
+# ml
+*.joblib
+*.pkl
+*.h5
+
+# frontend
+node_modules/
+dist/
+.eslintcache
+
+# geolocation
+*.tif
+*.tiff
+*.nc
+*.grib
+data/demo_cache/
+
+# ide
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# documentation
+implementation_plan/
