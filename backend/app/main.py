@@ -10,6 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import Base, engine
 
+# Import models so they register with Base.metadata before create_all
+from app.models import Location, CriticalInfrastructure, FloodPrediction, Alert  # noqa: F401
+from app.routers import (
+    locations_router,
+    predictions_router,
+    impact_router,
+    alerts_router,
+)
+
 settings = get_settings()
 
 # Create all database tables on startup
@@ -35,6 +44,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API routers
+app.include_router(locations_router)
+app.include_router(predictions_router)
+app.include_router(impact_router)
+app.include_router(alerts_router)
 
 
 @app.get("/")

@@ -4,10 +4,171 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>FloodSentry — EU Flood Risk Digital Twin</title>
+    <meta name="description" content="Pan-European real-time flood risk monitoring using Copernicus satellite data. Impact-based forecasting for NUTS-3 regions." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Top Navigation Bar -->
+      <header id="topbar">
+        <div id="topbar-left">
+          <div id="logo">
+            <span class="logo-icon">🛡️</span>
+            <span class="logo-text">Flood<strong>Sentry</strong></span>
+            <span class="logo-badge">EU DIGITAL TWIN</span>
+          </div>
+        </div>
+        <div id="topbar-center">
+          <div id="status-bar">
+            <div class="status-item" id="status-regions">
+              <span class="status-value" id="stat-regions">—</span>
+              <span class="status-label">Regions at Risk</span>
+            </div>
+            <div class="status-divider"></div>
+            <div class="status-item" id="status-pop">
+              <span class="status-value" id="stat-pop">—</span>
+              <span class="status-label">People Affected</span>
+            </div>
+            <div class="status-divider"></div>
+            <div class="status-item">
+              <span class="status-value" id="stat-hospitals">—</span>
+              <span class="status-label">Hospitals at Risk</span>
+            </div>
+            <div class="status-divider"></div>
+            <div class="status-item">
+              <span class="status-value" id="stat-schools">—</span>
+              <span class="status-label">Schools at Risk</span>
+            </div>
+          </div>
+        </div>
+        <div id="topbar-right">
+          <button id="btn-locate" class="btn-primary" title="Locate Me (Galileo)">
+            <span>📍</span> Locate Me
+          </button>
+          <div id="live-indicator">
+            <span class="pulse-dot"></span>
+            <span>LIVE</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Layout -->
+      <div id="main-layout">
+        <!-- Left Sidebar -->
+        <aside id="sidebar">
+          <div id="sidebar-header">
+            <h2>Impact Analysis</h2>
+            <span class="cassini-badge">Powered by Copernicus</span>
+          </div>
+
+          <!-- Hazard Filter -->
+          <div class="sidebar-section">
+            <h3 class="section-title">Hazard Type</h3>
+            <div id="hazard-filters">
+              <button class="hazard-btn active" data-hazard="all" id="filter-all">All</button>
+              <button class="hazard-btn" data-hazard="fluvial" id="filter-fluvial">🌊 Fluvial</button>
+              <button class="hazard-btn" data-hazard="pluvial" id="filter-pluvial">🌧️ Pluvial</button>
+              <button class="hazard-btn" data-hazard="snowmelt" id="filter-snowmelt">❄️ Snowmelt</button>
+            </div>
+          </div>
+
+          <!-- Region List -->
+          <div class="sidebar-section" id="regions-section">
+            <h3 class="section-title">Monitored Regions</h3>
+            <div id="regions-list">
+              <div class="loading-skeleton"></div>
+              <div class="loading-skeleton"></div>
+              <div class="loading-skeleton"></div>
+            </div>
+          </div>
+
+          <!-- Selected Region Detail -->
+          <div id="region-detail" class="hidden">
+            <div id="region-detail-inner">
+              <button id="btn-close-detail" class="btn-back">← Back</button>
+              <div id="detail-header">
+                <div id="detail-alert-badge"></div>
+                <h2 id="detail-name"></h2>
+                <span id="detail-nuts-id"></span>
+              </div>
+              <div id="detail-risk-gauge">
+                <div id="gauge-track">
+                  <div id="gauge-fill"></div>
+                </div>
+                <div id="gauge-labels">
+                  <span>0</span>
+                  <span id="gauge-score"></span>
+                  <span>100</span>
+                </div>
+              </div>
+              <div id="detail-stats">
+                <div class="detail-stat">
+                  <span class="detail-stat-icon">👥</span>
+                  <div>
+                    <span class="detail-stat-value" id="detail-pop"></span>
+                    <span class="detail-stat-label">People at Risk</span>
+                  </div>
+                </div>
+                <div class="detail-stat">
+                  <span class="detail-stat-icon">⚡</span>
+                  <div>
+                    <span class="detail-stat-value" id="detail-hazard"></span>
+                    <span class="detail-stat-label">Hazard Type</span>
+                  </div>
+                </div>
+              </div>
+              <div id="detail-infrastructure">
+                <h3 class="section-title">Infrastructure at Risk</h3>
+                <div id="infra-list"></div>
+              </div>
+              <div id="detail-summary-box">
+                <p id="detail-summary-text"></p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main id="map-container">
+          <div id="deck-canvas-container">
+            <canvas id="deck-canvas"></canvas>
+          </div>
+          <!-- Map Controls -->
+          <div id="map-controls">
+            <button class="map-btn" id="btn-zoom-in" title="Zoom In">+</button>
+            <button class="map-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+            <button class="map-btn" id="btn-reset-view" title="Reset View">⌂</button>
+            <button class="map-btn" id="btn-toggle-3d" title="Toggle 3D">3D</button>
+          </div>
+          <!-- Legend -->
+          <div id="map-legend">
+            <div class="legend-title">Risk Score</div>
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
+            <div class="legend-items">
+              <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>Low</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Warning</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Critical</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>Emergency</div>
+            </div>
+          </div>
+          <!-- Loading overlay -->
+          <div id="map-loading">
+            <div class="loading-spinner"></div>
+            <p>Loading Digital Twin…</p>
+          </div>
+          <!-- Tooltip -->
+          <div id="map-tooltip"></div>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
