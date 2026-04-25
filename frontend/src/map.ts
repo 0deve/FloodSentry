@@ -241,9 +241,10 @@ export class FloodSentryMap {
             bbox: {west, south, east, north}
           } = props.tile as any;
 
-          return new BitmapLayer(props, {
-            data: undefined,
-            image: props.data,
+          return new BitmapLayer({
+            ...props,
+            data: undefined as any,
+            image: props.data as string,
             bounds: [west, south, east, north]
           });
         }

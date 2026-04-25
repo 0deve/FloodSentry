@@ -1,0 +1,32 @@
+[
+  {
+    "activation_code": "EMSR417",
+    "title": "Floods in Timis County",
+    "nuts_ids": ["RO424"],
+    "event_start": "2020-01-01",
+    "event_end": "2020-01-10",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR417"
+  },
+  {
+    "activation_code": "EMSR361",
+    "title": "Floods in Vaslui",
+    "nuts_ids": ["RO216"],
+    "event_start": "2019-06-03",
+    "event_end": "2019-06-12",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR361"
+  },
+  {
+    "activation_code": "EMSR262",
+    "title": "Floods in Covasna and Brasov",
+    "nuts_ids": ["RO121", "RO711"],
+    "event_start": "2018-03-14",
+    "event_end": "2018-03-20",
+    "hazard_type": "snowmelt",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR262"
+  }
+]

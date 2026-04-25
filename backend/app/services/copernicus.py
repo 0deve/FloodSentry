@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -159,16 +160,113 @@ def _parse_open_meteo(data: dict[str, Any]) -> dict[str, float]:
 def _simulate_ndwi(rainfall_mm: float, soil_moisture: float) -> float:
     """Simulate NDWI from rainfall + soil moisture proxies.
 
-    Real implementation would call Sentinel Hub Process API:
-        POST https://services.sentinel-hub.com/api/v1/process
-        evalscript: (B03 - B08) / (B03 + B08)
-
-    Returns a value in [-1, 1].  Positive values indicate surface water.
+    Used as fallback when Sentinel Hub API is unavailable.
     """
     base = -0.3 + (soil_moisture * 0.5)
     rain_effect = min(rainfall_mm / 100.0, 0.5)
     ndwi = round(base + rain_effect, 4)
     return max(-1.0, min(1.0, ndwi))
+
+# ---------------------------------------------------------------------------
+# Real Sentinel Hub Integration (Copernicus Data Space Ecosystem)
+# ---------------------------------------------------------------------------
+
+_SH_TOKEN: str | None = None
+_SH_TOKEN_EXPIRES: float = 0.0
+
+async def _get_sh_token() -> str | None:
+    """Get OAuth token from Copernicus Data Space Ecosystem."""
+    global _SH_TOKEN, _SH_TOKEN_EXPIRES
+    import time
+    if _SH_TOKEN and time.time() < _SH_TOKEN_EXPIRES:
+        return _SH_TOKEN
+
+    settings = get_settings()
+    if not settings.SENTINEL_HUB_CLIENT_ID or not settings.SENTINEL_HUB_CLIENT_SECRET:
+        return None
+
+    auth_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": settings.SENTINEL_HUB_CLIENT_ID,
+        "client_secret": settings.SENTINEL_HUB_CLIENT_SECRET,
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(auth_url, data=data)
+            resp.raise_for_status()
+            js = resp.json()
+            _SH_TOKEN = js.get("access_token")
+            # Usually expires in 3600s, subtract 60s for safety buffer
+            expires_in = js.get("expires_in", 3600)
+            _SH_TOKEN_EXPIRES = time.time() + expires_in - 60
+            return _SH_TOKEN
+    except Exception as exc:
+        logger.warning("Failed to get Sentinel Hub Token: %s", exc)
+        return None
+
+async def _fetch_real_ndwi(bbox: BBox) -> float:
+    """Fetch real NDWI from Sentinel Hub Process API."""
+    token = await _get_sh_token()
+    if not token:
+        raise ValueError("No valid Sentinel Hub token.")
+
+    process_url = "https://sh.dataspace.copernicus.eu/api/v1/process"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    # Sentinel-2 Evalscript for NDWI
+    evalscript = """
+    //VERSION=3
+    function setup() {
+      return {
+        input: ["B03", "B08"],
+        output: { bands: 1, sampleType: "FLOAT32" }
+      };
+    }
+    function evaluatePixel(sample) {
+      // NDWI = (Green - NIR) / (Green + NIR)
+      let ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
+      return [ndwi];
+    }
+    """
+
+    payload = {
+        "input": {
+            "bounds": {
+                "bbox": [bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat]
+            },
+            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 20}}]
+        },
+        "output": {
+            "width": 10,
+            "height": 10,
+            "responses": [{"identifier": "default", "format": {"type": "application/json"}}]
+        },
+        "evalscript": evalscript
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(process_url, headers=headers, json=payload)
+        resp.raise_for_status()
+        
+        # Parse the JSON response which contains the raw pixel values
+        data = resp.json()
+        pixels = data.get("data", [])
+        if not pixels:
+            raise ValueError("No pixel data returned")
+            
+        # Calculate the average NDWI across the returned pixels
+        flattened = [val for row in pixels for val in row if val is not None]
+        if not flattened:
+            raise ValueError("All pixel values were null")
+            
+        avg_ndwi = sum(flattened) / len(flattened)
+        return round(float(avg_ndwi), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -256,19 +354,25 @@ class CopernicusService:
     async def get_ndwi(self, nuts_id: str, bbox: BBox) -> NDWIResult:
         """Return NDWI for the given bbox.
 
-        Currently simulated from ERA5 proxies. Production upgrade:
-        POST to Sentinel Hub Process API with a McFeeters NDWI evalscript.
-        Requires SENTINEL_HUB_CLIENT_ID / SECRET in .env.
+        Uses real Sentinel Hub Process API if credentials are provided.
+        Falls back to ERA5 simulation on failure.
         """
-        # Re-use soil moisture fetch to avoid duplicate HTTP calls
-        sm = await self.get_soil_moisture(nuts_id, bbox)
-        ndwi_val = _simulate_ndwi(sm.rainfall_mm_48h, sm.soil_moisture_index)
+        source_name = "sentinel-2-l2a"
+        try:
+            ndwi_val = await _fetch_real_ndwi(bbox)
+            logger.info("Successfully fetched real NDWI for %s: %.4f", nuts_id, ndwi_val)
+        except Exception as exc:
+            logger.warning("Failed to fetch real NDWI for %s: %s — falling back to simulation", nuts_id, exc)
+            sm = await self.get_soil_moisture(nuts_id, bbox)
+            ndwi_val = _simulate_ndwi(sm.rainfall_mm_48h, sm.soil_moisture_index)
+            source_name = "sentinel-2-simulated"
 
         return NDWIResult(
             nuts_id=nuts_id,
             bbox=bbox,
             ndwi=ndwi_val,
-            cloud_cover_pct=0.0,  # placeholder; real call returns actual cloud mask
+            cloud_cover_pct=0.0,
+            source=source_name,
         )
 
     # ------------------------------------------------------------------ #

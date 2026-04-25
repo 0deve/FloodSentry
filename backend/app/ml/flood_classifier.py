@@ -51,6 +51,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from app.services.ems_ground_truth import EMSGroundTruthService
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -233,6 +235,50 @@ def _generate_synthetic_training_data(n_samples: int = 2000) -> pd.DataFrame:
     return df
 
 
+def _build_real_training_data() -> pd.DataFrame:
+    """Build training dataset by combining real EMS events with synthetic background."""
+    # 1. Start with a solid background of physical rules
+    base_df = _generate_synthetic_training_data(n_samples=3000)
+    
+    # 2. Inject real Copernicus EMS Ground Truth
+    ems = EMSGroundTruthService()
+    samples = ems.get_labelled_samples()
+    
+    real_rows = []
+    for s in samples:
+        # Reconstruct environmental features matching the real hazard type
+        # In a full pipeline, we would query Sentinel Hub for the exact date.
+        month = s.event_start.month
+        is_winter = 1 if month in [12, 1, 2, 3] else 0
+        
+        row = {
+            "month": month,
+            "is_winter": is_winter,
+            "soil_moisture": 0.8 if s.hazard_type in ("pluvial", "fluvial") else 0.5,
+            "ndwi": 0.4 if s.hazard_type == "fluvial" else 0.1,
+            "ndvi": _RNG.uniform(0.3, 0.7),
+            "snow_cover": 0.6 if s.hazard_type == "snowmelt" else 0.0,
+            "rainfall_24h": _RNG.uniform(50, 150) if s.hazard_type == "pluvial" else _RNG.uniform(0, 10),
+            "temp_trend": _RNG.uniform(5, 12) if s.hazard_type == "snowmelt" else 0.0,
+            "elevation": _RNG.uniform(10, 300),
+            "slope": _RNG.uniform(0.1, 5),
+            "upstream_risk": _RNG.uniform(60, 100) if s.hazard_type == "fluvial" else 0.0,
+            "is_flooded": s.is_flooded,
+        }
+        real_rows.append(row)
+        
+    if real_rows:
+        real_df = pd.DataFrame(real_rows)
+        # Duplicate the real samples to give them more weight in the MVP
+        real_df = pd.concat([real_df] * 50, ignore_index=True)
+        final_df = pd.concat([base_df, real_df], ignore_index=True)
+        logger.info("Merged %d real EMS events into training set.", len(samples))
+    else:
+        final_df = base_df
+        
+    return final_df
+
+
 # ---------------------------------------------------------------------------
 # Hazard type classifier (post-hoc)
 # ---------------------------------------------------------------------------
@@ -330,8 +376,8 @@ class FloodClassifier:
             logger.error("ML dependencies not installed: %s", e)
             return
 
-        logger.info("Training XGBoost flood classifier…")
-        df = _generate_synthetic_training_data(n_samples=3000)
+        logger.info("Training XGBoost flood classifier on Real + Synthetic data…")
+        df = _build_real_training_data()
 
         X = df[FEATURE_COLUMNS].values
         y = df["is_flooded"].values
