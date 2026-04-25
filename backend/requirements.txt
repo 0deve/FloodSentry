@@ -1,0 +1,24 @@
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+
+# Database
+sqlalchemy>=2.0.40
+
+# Geospatial
+geopandas>=1.0.0
+shapely>=2.0.0
+networkx>=3.4.0
+
+# ML & Data
+scikit-learn>=1.6.0
+xgboost>=3.0.0
+pandas>=2.2.0
+numpy>=2.0.0
+
+# API & Config
+pydantic-settings>=2.9.0
+httpx>=0.28.0
+
+# CORS
+python-multipart>=0.0.20
