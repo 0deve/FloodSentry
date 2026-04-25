@@ -1,16 +1,22 @@
 /**
  * FloodSentry — Main Application
- * Orchestrates: API fetching, sidebar UI, map rendering, and interactions.
+ * Task 6: Full Frontend ↔ Backend Integration
+ *
+ * Orchestrates:
+ * - API data fetching (impact summary, predictions, infrastructure)
+ * - NUTS-3 ↔ NUTS-2 mapping for GeoJSON
+ * - Sidebar UI with narrative impact display
+ * - Auto-infrastructure markers for critical regions
+ * - Map rendering and interactions
  */
 
 import './style.css';
-import { api } from './api.ts';
+import { api, HAZARD_LABELS, HAZARD_SOURCES } from './api.ts';
 import { FloodSentryMap } from './map.ts';
-import type { RegionImpact, ImpactSummary, Infrastructure } from './api.ts';
+import type { RegionImpact, ImpactSummary, Infrastructure, Prediction } from './api.ts';
 
 // ── State ──────────────────────────────────────────────────────
 let impactSummary: ImpactSummary | null = null;
-let selectedRegion: RegionImpact | null = null;
 let activeHazard = 'all';
 let map: FloodSentryMap;
 let locationCoords: Map<string, { lat: number; lon: number }> = new Map();
@@ -59,6 +65,15 @@ function infraTypeIcon(type: string): string {
   return icons[type] ?? '📍';
 }
 
+function hazardIcon(type: string): string {
+  const icons: Record<string, string> = {
+    fluvial: '🌊',
+    pluvial: '🌧️',
+    snowmelt: '❄️',
+  };
+  return icons[type] ?? '⚠️';
+}
+
 // ── Update Stats Bar ───────────────────────────────────────────
 function updateStatsBar(summary: ImpactSummary): void {
   animateNumber(statRegions, summary.total_regions_at_risk);
@@ -99,6 +114,7 @@ function renderRegionList(regions: RegionImpact[]): void {
     card.dataset['nutsId'] = region.nuts_id;
 
     const fillColor = riskColor(region.risk_score);
+    const infraCount = region.infrastructure_at_risk.reduce((sum, i) => sum + i.count, 0);
 
     card.innerHTML = `
       <div class="region-card-header">
@@ -107,6 +123,10 @@ function renderRegionList(regions: RegionImpact[]): void {
           <div class="region-nuts">${region.nuts_id}</div>
         </div>
         <div class="risk-badge ${region.alert_level}">${region.risk_score.toFixed(1)}</div>
+      </div>
+      <div class="region-card-body">
+        <span class="card-pop">${hazardIcon(region.hazard_type)} ${formatNumber(region.affected_population)} affected</span>
+        ${infraCount > 0 ? `<span class="card-infra">🏗️ ${infraCount} assets at risk</span>` : ''}
       </div>
       <div class="region-card-footer">
         <span class="hazard-tag ${region.hazard_type}">${region.hazard_type}</span>
@@ -128,9 +148,72 @@ function riskColor(score: number): string {
   return '#22c55e';
 }
 
+// ── Build Impact Narrative ─────────────────────────────────────
+function buildImpactNarrative(
+  region: RegionImpact,
+  prediction: Prediction | null,
+): string {
+  const parts: string[] = [];
+
+  // Flood source
+  const source = HAZARD_LABELS[region.hazard_type] ?? region.hazard_type;
+  parts.push(`<div class="narrative-section">
+    <div class="narrative-label">Flood Source</div>
+    <div class="narrative-value">${hazardIcon(region.hazard_type)} ${source}</div>
+    <div class="narrative-desc">${HAZARD_SOURCES[region.hazard_type] ?? ''}</div>
+  </div>`);
+
+  // Sensor data (from prediction)
+  if (prediction) {
+    const sensors: string[] = [];
+    if (prediction.rainfall_mm != null) sensors.push(`<span class="sensor-chip">🌧️ Rainfall: ${prediction.rainfall_mm.toFixed(1)} mm</span>`);
+    if (prediction.soil_moisture != null) sensors.push(`<span class="sensor-chip">🌱 Soil Moisture: ${(prediction.soil_moisture * 100).toFixed(0)}%</span>`);
+    if (prediction.river_discharge != null) sensors.push(`<span class="sensor-chip">🌊 River Discharge: ${prediction.river_discharge.toFixed(0)} m³/s</span>`);
+    if (prediction.ndwi != null) sensors.push(`<span class="sensor-chip">🛰️ NDWI: ${prediction.ndwi.toFixed(2)}</span>`);
+    if (prediction.snow_water_equivalent != null) sensors.push(`<span class="sensor-chip">❄️ Snow Water: ${prediction.snow_water_equivalent.toFixed(1)} mm</span>`);
+    if (prediction.temperature_c != null) sensors.push(`<span class="sensor-chip">🌡️ Temp: ${prediction.temperature_c.toFixed(1)}°C</span>`);
+
+    if (sensors.length > 0) {
+      parts.push(`<div class="narrative-section">
+        <div class="narrative-label">Copernicus Sensor Data</div>
+        <div class="sensor-grid">${sensors.join('')}</div>
+      </div>`);
+    }
+  }
+
+  // Impact estimate — population & infrastructure
+  const infraParts: string[] = [];
+  for (const item of region.infrastructure_at_risk) {
+    if (item.count === 1 && item.names.length > 0) {
+      infraParts.push(`${infraTypeIcon(item.type)} ${item.names[0]}`);
+    } else if (item.count > 0) {
+      infraParts.push(`${infraTypeIcon(item.type)} ${item.count} ${item.type}${item.count > 1 ? 's' : ''}${item.names.length > 0 ? ' (' + item.names.slice(0, 2).join(', ') + (item.names.length > 2 ? '…' : '') + ')' : ''}`);
+    }
+  }
+
+  parts.push(`<div class="narrative-section">
+    <div class="narrative-label">Estimated Impact</div>
+    <div class="narrative-impact">
+      <div class="impact-row"><span class="impact-icon">👥</span><span>Population: <strong>${formatNumber(region.affected_population)}</strong></span></div>
+      ${infraParts.map(p => `<div class="impact-row"><span>${p}</span></div>`).join('')}
+    </div>
+  </div>`);
+
+  // Model info
+  if (prediction?.model_version) {
+    parts.push(`<div class="narrative-section narrative-meta">
+      <span>Model: ${prediction.model_version}</span>
+      <span>Predicted: ${new Date(prediction.predicted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+    </div>`);
+  }
+
+  return parts.join('');
+}
+
 // ── Open Region Detail ─────────────────────────────────────────
 async function openRegionDetail(region: RegionImpact): Promise<void> {
-  selectedRegion = region;
+  // Tell map to highlight this region
+  map.setSelectedRegion(region.nuts_id);
 
   // Highlight selected card
   document.querySelectorAll('.region-card').forEach(el => el.classList.remove('selected'));
@@ -147,6 +230,7 @@ async function openRegionDetail(region: RegionImpact): Promise<void> {
 
   const gaugeFill = document.getElementById('gauge-fill')!;
   gaugeFill.style.width = '0%';
+  gaugeFill.style.background = `linear-gradient(90deg, ${riskColor(0)}, ${riskColor(region.risk_score)})`;
   setTimeout(() => { gaugeFill.style.width = `${region.risk_score}%`; }, 50);
   document.getElementById('gauge-score')!.textContent = `${region.risk_score.toFixed(1)}`;
 
@@ -160,11 +244,15 @@ async function openRegionDetail(region: RegionImpact): Promise<void> {
   // Show detail panel
   regionDetail.classList.remove('hidden');
 
+  // Narrative — loading state
+  const narrativeEl = document.getElementById('detail-narrative')!;
+  narrativeEl.innerHTML = '<div class="loading-skeleton" style="height:80px"></div>';
+
   // Summary text
+  const summaryBox = document.getElementById('detail-summary-box')!;
   document.getElementById('detail-summary-text')!.textContent = region.summary_text;
 
   // Update border color based on alert level
-  const summaryBox = document.getElementById('detail-summary-box')!;
   const borderColors: Record<string, string> = {
     emergency: 'var(--risk-emergency)',
     critical:  'var(--risk-critical)',
@@ -179,15 +267,18 @@ async function openRegionDetail(region: RegionImpact): Promise<void> {
     map.flyTo(coords.lon, coords.lat, 7);
   }
 
-  // Fetch infrastructure
-  try {
-    const infra = await api.getInfrastructure(region.nuts_id);
-    renderInfraList(infraList, infra);
-    map.updateInfrastructure(infra);
-  } catch {
-    infraList.innerHTML = `<p style="color:var(--text-muted);font-size:12px">Could not load infrastructure data.</p>`;
-    map.updateInfrastructure([]);
-  }
+  // Fetch prediction details + infrastructure in parallel
+  const [infra, prediction] = await Promise.all([
+    api.getInfrastructure(region.nuts_id).catch(() => [] as Infrastructure[]),
+    api.getRegionPredictionDetails(region.nuts_id),
+  ]);
+
+  // Render infrastructure list
+  renderInfraList(infraList, infra);
+  map.updateInfrastructure(infra);
+
+  // Render narrative
+  narrativeEl.innerHTML = buildImpactNarrative(region, prediction);
 }
 
 function renderInfraList(container: HTMLElement, infra: Infrastructure[]): void {
@@ -227,9 +318,9 @@ btnToggle3D.addEventListener('click', () => {
 // ── Back button ────────────────────────────────────────────────
 btnCloseDetail.addEventListener('click', () => {
   regionDetail.classList.add('hidden');
-  selectedRegion = null;
   document.querySelectorAll('.region-card').forEach(el => el.classList.remove('selected'));
-  map.updateInfrastructure([]); // Clear icons from map
+  map.updateInfrastructure([]); // Clear selected region icons from map
+  map.setSelectedRegion(null);  // Remove highlight
   map.resetView(); // Fly back to overview
 });
 
@@ -282,6 +373,12 @@ async function init(): Promise<void> {
     updateStatsBar(impactSummary);
     renderRegionList(impactSummary.regions);
     map.update(impactSummary.regions);
+
+    // ── Task 6 Step 3: Auto-display infrastructure for critical regions ──
+    const criticalInfra = await api.getCriticalInfrastructure(impactSummary.regions);
+    map.updateCriticalInfrastructure(criticalInfra);
+
+    console.log(`[FloodSentry] Loaded ${impactSummary.regions.length} regions, ${criticalInfra.size} critical with infrastructure`);
 
   } catch (err) {
     console.error('Failed to load FloodSentry data:', err);

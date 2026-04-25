@@ -864,3 +864,168 @@ html, body {
 }
 
 .region-card { animation: fadeIn 0.3s ease both; }
+
+/* ================================================================
+   Task 6: Frontend ↔ Backend Integration — Additional Styles
+================================================================ */
+
+/* ── Region Card Body (inline stats) ──────────────────────── */
+.region-card-body {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.card-pop, .card-infra {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-infra {
+  color: var(--risk-warning);
+  font-weight: 500;
+}
+
+/* ── Impact Narrative Section ─────────────────────────────── */
+#detail-narrative-section {
+  margin: 14px 0;
+}
+
+#detail-narrative {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.narrative-section {
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.narrative-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.narrative-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.narrative-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Sensor Data Chips ────────────────────────────────────── */
+.sensor-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sensor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.sensor-chip:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* ── Impact Rows ──────────────────────────────────────────── */
+.narrative-impact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.impact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.impact-row strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.impact-icon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Narrative Meta ───────────────────────────────────────── */
+.narrative-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  border: none;
+  background: none;
+  padding: 4px 0 0;
+  gap: 8px;
+}
+
+/* ── Tooltip Warning Row ──────────────────────────────────── */
+.tooltip-warning {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--risk-warning);
+  font-weight: 500;
+}
+
+/* ── Infrastructure pulsing on critical regions ───────────── */
+@keyframes infraPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50%      { box-shadow: 0 0 8px 4px rgba(239, 68, 68, 0.15); }
+}
+
+.infra-item.critical-zone {
+  animation: infraPulse 2s ease-in-out infinite;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ── Selected Region Highlight ────────────────────────────── */
+.region-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+
+.region-card.selected .region-name {
+  color: var(--accent-light);
+}
+

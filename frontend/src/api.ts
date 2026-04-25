@@ -1,6 +1,7 @@
 /**
  * FloodSentry API Client
  * Communicates with the FastAPI backend at VITE_API_URL.
+ * Task 6: Full frontend↔backend integration with NUTS mapping.
  */
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000';
@@ -67,6 +68,39 @@ export interface ImpactSummary {
   regions: RegionImpact[];
 }
 
+// ── Hazard Display Helpers ─────────────────────────────────────
+
+/** Human-readable labels for hazard types */
+export const HAZARD_LABELS: Record<string, string> = {
+  fluvial: 'River Overflow (Fluvial Flooding)',
+  pluvial: 'Torrential Rain (Pluvial Flash Floods)',
+  snowmelt: 'Snowmelt + Rapid Thaw',
+};
+
+/** Detailed flood source descriptions */
+export const HAZARD_SOURCES: Record<string, string> = {
+  fluvial: 'River overflow from sustained high water levels — river discharge exceeds bank capacity.',
+  pluvial: 'Intense localized rainfall exceeding soil absorption — urban flash flood risk.',
+  snowmelt: 'Rapid snowmelt (Snowmelt) combined with rising temperatures — runoff surge.',
+};
+
+// ── NUTS ID Mapping ────────────────────────────────────────────
+
+/**
+ * Derive the NUTS-2 parent from a NUTS-3 ID.
+ * E.g., "RO224" → "RO22", "HU333" → "HU33"
+ */
+export function nutsToLevel2(nutsId: string): string {
+  return nutsId.length >= 4 ? nutsId.substring(0, 4) : nutsId;
+}
+
+/**
+ * Check if a NUTS-3 ID belongs to a NUTS-2 parent.
+ */
+export function isChildOf(nuts3: string, nuts2: string): boolean {
+  return nuts3.startsWith(nuts2);
+}
+
 // ── Fetch helpers ──────────────────────────────────────────────
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
@@ -103,5 +137,41 @@ export const api = {
     if (nutsId) params['nuts_id'] = nutsId;
     if (hazardType) params['hazard_type'] = hazardType;
     return get<Prediction[]>('/api/v1/predictions/', params);
+  },
+
+  /**
+   * Fetch infrastructure for ALL critical/emergency regions in batch.
+   * Returns a Map of nuts_id → Infrastructure[].
+   */
+  async getCriticalInfrastructure(regions: RegionImpact[]): Promise<Map<string, Infrastructure[]>> {
+    const critical = regions.filter(
+      r => r.alert_level === 'critical' || r.alert_level === 'emergency'
+    );
+    const results = new Map<string, Infrastructure[]>();
+    // Fetch in parallel for all critical regions
+    const fetches = critical.map(async r => {
+      try {
+        const infra = await this.getInfrastructure(r.nuts_id);
+        results.set(r.nuts_id, infra);
+      } catch {
+        results.set(r.nuts_id, []);
+      }
+    });
+    await Promise.all(fetches);
+    return results;
+  },
+
+  /**
+   * Fetch prediction details for a specific region.
+   * Enriches the RegionImpact data with sensor readings.
+   */
+  async getRegionPredictionDetails(nutsId: string): Promise<Prediction | null> {
+    try {
+      const predictions = await this.getPredictions(nutsId);
+      // Return the highest-risk prediction
+      return predictions.sort((a, b) => b.risk_score - a.risk_score)[0] ?? null;
+    } catch {
+      return null;
+    }
   },
 };
