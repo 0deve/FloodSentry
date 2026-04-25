@@ -17,6 +17,7 @@ from app.routers import (
     predictions_router,
     impact_router,
     alerts_router,
+    copernicus_router,
 )
 
 settings = get_settings()
@@ -50,6 +51,7 @@ app.include_router(locations_router)
 app.include_router(predictions_router)
 app.include_router(impact_router)
 app.include_router(alerts_router)
+app.include_router(copernicus_router)
 
 
 @app.get("/")
