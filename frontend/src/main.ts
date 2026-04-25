@@ -36,6 +36,8 @@ const statPop         = document.getElementById('stat-pop')!;
 const statHospitals   = document.getElementById('stat-hospitals')!;
 const statSchools     = document.getElementById('stat-schools')!;
 const btnLocate       = document.getElementById('btn-locate')!;
+const btnBadWeather   = document.getElementById('btn-bad-weather')!;
+const btnResetData    = document.getElementById('btn-reset-data')!;
 const btnCloseDetail  = document.getElementById('btn-close-detail')!;
 const btnZoomIn       = document.getElementById('btn-zoom-in')!;
 const btnZoomOut      = document.getElementById('btn-zoom-out')!;
@@ -346,6 +348,41 @@ btnCloseDetail.addEventListener('click', () => {
   map.updateInfrastructure([]); // Clear selected region icons from map
   map.setSelectedRegion(null);  // Remove highlight
   map.resetView(); // Fly back to overview
+});
+
+// ── Reset Data ──────────────────────────────────────────────────
+btnResetData.addEventListener('click', async () => {
+  btnResetData.textContent = '⏳ Resetting…';
+  btnResetData.setAttribute('disabled', 'true');
+  
+  try {
+    showNotification('Resetting to live conditions...', 'info');
+    await api.triggerRefresh(false);
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to reset data.');
+    btnResetData.innerHTML = '<span>🔄</span> Reset Data';
+    btnResetData.removeAttribute('disabled');
+  }
+});
+
+// ── Test Bad Weather ───────────────────────────────────────────
+btnBadWeather.addEventListener('click', async () => {
+  btnBadWeather.textContent = '⏳ Simulating…';
+  btnBadWeather.setAttribute('disabled', 'true');
+  
+  try {
+    showNotification('Simulating extreme weather across Europe...', 'info');
+    await api.triggerRefresh(true);
+    // Reload page to fetch new data
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to simulate bad weather.');
+    btnBadWeather.innerHTML = '<span>⛈️</span> Test Bad Weather';
+    btnBadWeather.removeAttribute('disabled');
+  }
 });
 
 // ── Locate Me (Galileo) ────────────────────────────────────────

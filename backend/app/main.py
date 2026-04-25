@@ -4,6 +4,8 @@ CASSINI Hackathon 'EU Space for Water' — Challenge #3: Disaster Risk Monitorin
 FastAPI application entry point.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,11 +23,40 @@ from app.routers import (
     ml_router,
     simulator_router,
 )
+from app.services.live_refresh import startup_seed_and_refresh, refresh_predictions
+from app.database import SessionLocal
+
+import logging
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-# Create all database tables on startup
-Base.metadata.create_all(bind=engine)
+
+# ── Lifespan: seed DB + fetch live satellite data on startup ──────────────────
+
+import asyncio
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: seed static data + start background fetch for Copernicus data."""
+    logger.info("🚀 FloodSentry starting up...")
+    
+    # Run the long data fetch process in the background
+    # so the server can accept requests immediately.
+    asyncio.create_task(_background_startup_refresh())
+    
+    yield
+    logger.info("FloodSentry shutting down.")
+
+async def _background_startup_refresh():
+    try:
+        await startup_seed_and_refresh()
+        logger.info("✅ Background startup complete — all regions populated with live data.")
+    except Exception as exc:
+        logger.error("⚠️  Background startup refresh failed: %s — app will serve empty data.", exc)
+
+
+# ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -37,6 +68,7 @@ app = FastAPI(
     ),
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS middleware for frontend communication
@@ -58,6 +90,8 @@ app.include_router(ml_router)
 app.include_router(simulator_router)
 
 
+# ── Core endpoints ────────────────────────────────────────────────────────────
+
 @app.get("/")
 async def root():
     """Health check / welcome endpoint."""
@@ -77,3 +111,17 @@ async def health_check():
         "database": "connected",
         "version": settings.APP_VERSION,
     }
+
+
+@app.post("/api/v1/refresh")
+async def manual_refresh(bad_weather: bool = False):
+    """Manually trigger a live Copernicus data refresh.
+    Defaults to Romania only for speed, unless otherwise specified.
+    """
+    db = SessionLocal()
+    try:
+        # Manual refreshes (buttons) only update Romania to keep it fast (<1s)
+        result = await refresh_predictions(db, bad_weather=bad_weather, romania_only=True)
+        return result
+    finally:
+        db.close()

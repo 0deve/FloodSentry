@@ -246,4 +246,12 @@ export const api = {
       month,
     });
   },
+
+  /** Trigger a live data refresh, optionally simulating extreme weather */
+  async triggerRefresh(badWeather: boolean = false): Promise<any> {
+    const url = `${BASE_URL}/api/v1/refresh?bad_weather=${badWeather}`;
+    const res = await fetch(url, { method: 'POST' });
+    if (!res.ok) throw new Error(`Refresh failed: ${res.status}`);
+    return res.json();
+  },
 };

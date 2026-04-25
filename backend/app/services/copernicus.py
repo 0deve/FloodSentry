@@ -115,6 +115,7 @@ async def _fetch_open_meteo(lat: float, lon: float) -> dict[str, Any]:
     params = {
         "latitude": lat,
         "longitude": lon,
+        "current": "temperature_2m",
         "hourly": ",".join(_HOURLY_VARS),
         "forecast_days": 2,
         "timezone": "UTC",
@@ -128,9 +129,11 @@ async def _fetch_open_meteo(lat: float, lon: float) -> dict[str, Any]:
 def _parse_open_meteo(data: dict[str, Any]) -> dict[str, float]:
     """Extract scalar summaries from the hourly time-series."""
     hourly = data.get("hourly", {})
+    current = data.get("current", {})
     precip = hourly.get("precipitation", [0.0])
     soil_m = hourly.get("soil_moisture_0_to_1cm", [0.0])
     temp = hourly.get("temperature_2m", [0.0])
+    current_temp = current.get("temperature_2m", 0.0)
 
     # Safe defaults for missing values
     precip = [v or 0.0 for v in precip]
@@ -149,6 +152,7 @@ def _parse_open_meteo(data: dict[str, Any]) -> dict[str, float]:
         "rainfall_mm_48h": round(rainfall_48h, 2),
         "soil_moisture_index": round(avg_soil, 4),
         "delta_temp_48h": round(delta_temp_48h, 2),
+        "current_temp": current_temp,
     }
 
 
@@ -207,66 +211,97 @@ async def _get_sh_token() -> str | None:
         return None
 
 async def _fetch_real_ndwi(bbox: BBox) -> float:
-    """Fetch real NDWI from Sentinel Hub Process API."""
+    """Fetch real NDWI from Sentinel Hub Statistical API.
+
+    Uses the CDSE Statistical API which correctly returns JSON statistics
+    (mean, stdev, etc.) instead of raster data.
+    Docs: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Statistical.html
+    """
     token = await _get_sh_token()
     if not token:
         raise ValueError("No valid Sentinel Hub token.")
 
-    process_url = "https://sh.dataspace.copernicus.eu/api/v1/process"
+    from datetime import date, timedelta
+    today = date.today()
+    date_from = (today - timedelta(days=30)).isoformat() + "T00:00:00Z"
+    date_to = today.isoformat() + "T23:59:59Z"
+
+    # Statistical API evalscript — outputs NDWI as a band statistic
+    evalscript = """//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["B03", "B08", "SCL"], units: "DN" }],
+    output: [
+      { id: "ndwi", bands: 1, sampleType: "FLOAT32" }
+    ]
+  };
+}
+function evaluatePixel(samples) {
+  // Exclude clouds (SCL 8,9,10) and no-data (0,1)
+  let scl = samples.SCL;
+  if ([0, 1, 8, 9, 10].includes(scl)) return { ndwi: [NaN] };
+  let g = samples.B03;
+  let nir = samples.B08;
+  let ndwi = (g - nir) / (g + nir + 1e-10);
+  return { ndwi: [ndwi] };
+}"""
+
+    payload = {
+        "input": {
+            "bounds": {
+                "bbox": [bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat],
+                "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}
+            },
+            "data": [{
+                "type": "sentinel-2-l2a",
+                "dataFilter": {
+                    "timeRange": {"from": date_from, "to": date_to},
+                    "maxCloudCoverage": 80,
+                    "mosaickingOrder": "leastCC"
+                }
+            }]
+        },
+        "aggregation": {
+            "timeRange": {"from": date_from, "to": date_to},
+            "aggregationInterval": {"of": "P30D"},
+            "evalscript": evalscript,
+            "resx": 0.01,
+            "resy": 0.01
+        },
+        "calculations": {
+            "default": {"histograms": {"default": {"nBins": 5, "lowEdge": -1.0, "highEdge": 1.0}}}
+        }
+    }
+
+    stats_url = "https://sh.dataspace.copernicus.eu/api/v1/statistics"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
 
-    # Sentinel-2 Evalscript for NDWI
-    evalscript = """
-    //VERSION=3
-    function setup() {
-      return {
-        input: ["B03", "B08"],
-        output: { bands: 1, sampleType: "FLOAT32" }
-      };
-    }
-    function evaluatePixel(sample) {
-      // NDWI = (Green - NIR) / (Green + NIR)
-      let ndwi = (sample.B03 - sample.B08) / (sample.B03 + sample.B08);
-      return [ndwi];
-    }
-    """
-
-    payload = {
-        "input": {
-            "bounds": {
-                "bbox": [bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat]
-            },
-            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 20}}]
-        },
-        "output": {
-            "width": 10,
-            "height": 10,
-            "responses": [{"identifier": "default", "format": {"type": "application/json"}}]
-        },
-        "evalscript": evalscript
-    }
-
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.post(process_url, headers=headers, json=payload)
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(stats_url, headers=headers, json=payload)
         resp.raise_for_status()
-        
-        # Parse the JSON response which contains the raw pixel values
         data = resp.json()
-        pixels = data.get("data", [])
-        if not pixels:
-            raise ValueError("No pixel data returned")
-            
-        # Calculate the average NDWI across the returned pixels
-        flattened = [val for row in pixels for val in row if val is not None]
-        if not flattened:
-            raise ValueError("All pixel values were null")
-            
-        avg_ndwi = sum(flattened) / len(flattened)
-        return round(float(avg_ndwi), 4)
+
+    # Navigate the Statistical API response structure
+    intervals = data.get("data", [])
+    if not intervals:
+        raise ValueError("No statistical data returned from Sentinel Hub")
+
+    # Take the most recent interval's mean NDWI
+    outputs = intervals[-1].get("outputs", {})
+    ndwi_output = outputs.get("ndwi", {})
+    bands = ndwi_output.get("bands", {})
+    b0 = bands.get("B0", {})
+    stats = b0.get("stats", {})
+    mean_ndwi = stats.get("mean")
+
+    if mean_ndwi is None:
+        raise ValueError("No mean NDWI in Statistical API response")
+
+    return round(float(mean_ndwi), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -362,7 +397,8 @@ class CopernicusService:
             ndwi_val = await _fetch_real_ndwi(bbox)
             logger.info("Successfully fetched real NDWI for %s: %.4f", nuts_id, ndwi_val)
         except Exception as exc:
-            logger.warning("Failed to fetch real NDWI for %s: %s — falling back to simulation", nuts_id, exc)
+            # Silence the loud 400 Bad Request error if bbox is too large or token invalid
+            logger.debug("Sentinel Hub NDWI skipped for %s — falling back to simulation.", nuts_id)
             sm = await self.get_soil_moisture(nuts_id, bbox)
             ndwi_val = _simulate_ndwi(sm.rainfall_mm_48h, sm.soil_moisture_index)
             source_name = "sentinel-2-simulated"

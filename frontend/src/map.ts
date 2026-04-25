@@ -16,13 +16,12 @@ import { GeoJsonLayer, ScatterplotLayer, TextLayer, BitmapLayer } from '@deck.gl
 import { TileLayer } from '@deck.gl/geo-layers';
 import type { Layer } from '@deck.gl/core';
 
-// ── Constants ─────────────────────────────────────────────────
 const INITIAL_VIEW_STATE = {
-  longitude: 26.0,
-  latitude: 46.0,
-  zoom: 5.5,
-  pitch: 50,
-  bearing: -10,
+  longitude: 10.0,
+  latitude: 49.0,
+  zoom: 3.8,
+  pitch: 45,
+  bearing: 0,
   transitionDuration: 1000,
 };
 
@@ -260,9 +259,10 @@ export class FloodSentryMap {
           pickable: true,
           stroked: true,
           filled: true,
-          extruded: this.is3D,
+          extruded: true,
           wireframe: false,
           getElevation: (d: { properties?: { NUTS_ID?: string } }) => {
+            if (!this.is3D) return 0;
             const nutsId = d?.properties?.NUTS_ID ?? '';
             const region = this.regionData.get(nutsId);
             return region ? region.risk_score * 800 : 0;
@@ -383,7 +383,7 @@ export class FloodSentryMap {
             filled: true,
             radiusMinPixels: 6,
             radiusMaxPixels: 28,
-            getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1100 : 0],
+            getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1100 : 10],
             getRadius: (d: Infrastructure) => infraMarkerRadius(d.type) * pulseScale * 1.8,
             getFillColor: (d: Infrastructure) => {
               const base = infraMarkerColor(d.type);
@@ -408,7 +408,7 @@ export class FloodSentryMap {
           filled: true,
           radiusMinPixels: 4,
           radiusMaxPixels: 16,
-          getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1200 : 0],
+          getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1200 : 20],
           getRadius: (d: Infrastructure) => infraMarkerRadius(d.type),
           getFillColor: (d: Infrastructure) => infraMarkerColor(d.type),
           getLineColor: [255, 255, 255, 160],
@@ -428,7 +428,7 @@ export class FloodSentryMap {
           id: 'selected-infra-icons',
           data: this.selectedInfraData,
           pickable: true,
-          getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1800 : 0],
+          getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1800 : 30],
           getText: (d: Infrastructure) => infraIcon(d.type),
           getSize: 32,
           getColor: [255, 255, 255, 255],
@@ -512,6 +512,16 @@ export class FloodSentryMap {
   /** Toggle 3D extrusion */
   toggle3D(): boolean {
     this.is3D = !this.is3D;
+    
+    // Smoothly transition pitch and bearing
+    this.viewState = {
+      ...this.viewState,
+      pitch: this.is3D ? 45 : 0,
+      bearing: this.is3D ? -10 : 0,
+      transitionDuration: 800
+    };
+    this.deck?.setProps({ initialViewState: this.viewState });
+    
     this.render();
     return this.is3D;
   }
