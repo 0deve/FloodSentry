@@ -1029,3 +1029,430 @@ html, body {
   color: var(--accent-light);
 }
 
+/* ================================================================
+   Task 7: Alerts, Simulator & Export — Additional Styles
+================================================================ */
+
+/* ── Export Action Buttons ─────────────────────────────────────── */
+#detail-actions {
+  margin: 16px 0 0;
+}
+
+#action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-glass);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+
+.action-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+  transform: translateX(3px);
+}
+
+.action-btn .action-icon {
+  font-size: 22px;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.action-btn .action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-btn .action-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.action-btn .action-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* CAP XML button — government-style accent */
+.cap-btn:hover {
+  border-color: var(--risk-emergency);
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.15);
+}
+
+.cap-btn:hover .action-label {
+  color: #a78bfa;
+}
+
+/* PDF button — blue accent */
+.pdf-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+
+.pdf-btn:hover .action-label {
+  color: var(--accent-light);
+}
+
+/* ── Simulator Panel ──────────────────────────────────────────── */
+#simulator-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 20, 33, 0.92);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-strong);
+  z-index: 25;
+  padding: 14px 20px;
+  max-height: 320px;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+#simulator-panel.hidden {
+  display: none !important;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+#sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+#sim-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-icon {
+  font-size: 20px;
+}
+
+#sim-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.sim-badge {
+  font-size: 10px;
+  color: var(--accent-light);
+  background: var(--accent-glow);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sim-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.sim-close:hover {
+  color: var(--text-primary);
+  border-color: var(--risk-critical);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ── Simulator Controls ───────────────────────────────────────── */
+#sim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+#sim-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sim-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+
+.sim-play-btn:hover {
+  background: var(--accent-light);
+  box-shadow: var(--glow-accent);
+  transform: scale(1.08);
+}
+
+.sim-play-btn.playing {
+  background: var(--risk-critical);
+  animation: playPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes playPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50%      { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.2); }
+}
+
+/* Slider styling */
+#sim-slider, #sim-rainfall {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+#sim-slider::-webkit-slider-thumb,
+#sim-rainfall::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-surface);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+#sim-slider::-webkit-slider-thumb:hover,
+#sim-rainfall::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: var(--glow-accent);
+}
+
+.sim-time {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-light);
+  min-width: 56px;
+  text-align: right;
+}
+
+#sim-rain-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+#sim-rain-row label {
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+#sim-rain-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ── Simulator Region Cards ───────────────────────────────────── */
+#sim-regions {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+#sim-regions::-webkit-scrollbar { height: 4px; }
+#sim-regions::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+
+.sim-region-card {
+  min-width: 150px;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sim-region-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.sim-region-card.emergency::before { background: var(--risk-emergency); }
+.sim-region-card.critical::before  { background: var(--risk-critical); }
+.sim-region-card.warning::before   { background: var(--risk-warning); }
+.sim-region-card.info::before      { background: var(--risk-low); }
+
+.sim-region-card.sim-wave-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+  animation: waveGlow 2s ease-in-out infinite;
+}
+
+@keyframes waveGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(59, 130, 246, 0.1); }
+  50%      { box-shadow: 0 0 12px rgba(59, 130, 246, 0.25); }
+}
+
+.sim-region-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sim-region-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sim-region-risk {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sim-risk-bar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.sim-risk-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.sim-region-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ── Simulator Description ────────────────────────────────────── */
+#sim-description {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+#sim-desc-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── Map Controls Divider ─────────────────────────────────────── */
+.map-controls-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.sim-toggle-btn {
+  font-size: 12px !important;
+  color: var(--accent-light) !important;
+}
+
+/* ── Notification Toast ───────────────────────────────────────── */
+.fs-notification {
+  position: fixed;
+  top: 76px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+}
+
+.fs-notification.visible {
+  transform: translateX(0);
+}
+
+.fs-notification-success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+}
+
+.fs-notification-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.fs-notification-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+

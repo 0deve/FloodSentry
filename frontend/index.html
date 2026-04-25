@@ -134,6 +134,27 @@
               <div id="detail-summary-box">
                 <p id="detail-summary-text"></p>
               </div>
+
+              <!-- Task 7: Export Actions -->
+              <div id="detail-actions">
+                <h3 class="section-title">Export & Actions</h3>
+                <div id="action-buttons">
+                  <button id="btn-cap-xml" class="action-btn cap-btn" title="Download CAP XML for RO-Alert">
+                    <span class="action-icon">📡</span>
+                    <div class="action-text">
+                      <span class="action-label">RO-Alert XML</span>
+                      <span class="action-desc">Transmite către RO-Alert (CAP)</span>
+                    </div>
+                  </button>
+                  <button id="btn-pdf-report" class="action-btn pdf-btn" title="Generate Executive PDF Report">
+                    <span class="action-icon">📄</span>
+                    <div class="action-text">
+                      <span class="action-label">Raport PDF</span>
+                      <span class="action-desc">Raport executiv pentru primari</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -149,6 +170,8 @@
             <button class="map-btn" id="btn-zoom-out" title="Zoom Out">−</button>
             <button class="map-btn" id="btn-reset-view" title="Reset View">⌂</button>
             <button class="map-btn" id="btn-toggle-3d" title="Toggle 3D">3D</button>
+            <div class="map-controls-divider"></div>
+            <button class="map-btn sim-toggle-btn" id="btn-open-sim" title="Open Simulator">▶</button>
           </div>
           <!-- Legend -->
           <div id="map-legend">
@@ -173,6 +196,36 @@
           </div>
           <!-- Tooltip -->
           <div id="map-tooltip"></div>
+
+          <!-- Task 7: Hydrologic Simulator Panel -->
+          <div id="simulator-panel" class="hidden">
+            <div id="sim-header">
+              <div id="sim-title-row">
+                <span class="sim-icon">🌊</span>
+                <h3 id="sim-title">Hydrologic Simulator</h3>
+                <span id="sim-scenario" class="sim-badge"></span>
+              </div>
+              <button id="btn-close-sim" class="sim-close" title="Close Simulator">✕</button>
+            </div>
+            <div id="sim-controls">
+              <div id="sim-slider-row">
+                <button id="btn-sim-play" class="sim-play-btn" title="Play/Pause">▶</button>
+                <input type="range" id="sim-slider" min="0" max="24" value="0" step="1" />
+                <span id="sim-time-label" class="sim-time">T=0</span>
+              </div>
+              <div id="sim-rain-row">
+                <label for="sim-rainfall">🌧️ Rainfall (mm):</label>
+                <input type="range" id="sim-rainfall" min="0" max="400" value="150" step="10" />
+                <span id="sim-rain-value">150mm</span>
+              </div>
+            </div>
+            <div id="sim-regions">
+              <!-- Dynamically populated -->
+            </div>
+            <div id="sim-description">
+              <p id="sim-desc-text"></p>
+            </div>
+          </div>
         </main>
       </div>
     </div>

@@ -68,6 +68,47 @@ export interface ImpactSummary {
   regions: RegionImpact[];
 }
 
+export interface AlertRecord {
+  id: number;
+  nuts_id: string;
+  prediction_id: number | null;
+  level: 'info' | 'warning' | 'critical' | 'emergency';
+  title: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface SimRegionState {
+  nuts_id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  risk_score: number;
+  alert_level: string;
+  wave_active: boolean;
+  rainfall_mm: number;
+  description: string;
+}
+
+export interface SimTimeStep {
+  step: number;
+  hour: number;
+  label: string;
+  regions: SimRegionState[];
+}
+
+export interface SimulationTimeline {
+  scenario: string;
+  total_steps: number;
+  total_hours: number;
+  rainfall_mm: number;
+  month: number;
+  steps: SimTimeStep[];
+  computed_at: string;
+}
+
 // ── Hazard Display Helpers ─────────────────────────────────────
 
 /** Human-readable labels for hazard types */
@@ -173,5 +214,36 @@ export const api = {
     } catch {
       return null;
     }
+  },
+
+  // ── Task 7: Alerts ────────────────────────────────────────────
+
+  /** List active alerts */
+  getAlerts(nutsId?: string): Promise<AlertRecord[]> {
+    const params: Record<string, string | number> = { active_only: 1 };
+    if (nutsId) params['nuts_id'] = nutsId;
+    return get<AlertRecord[]>('/api/v1/alerts/', params);
+  },
+
+  /** Run the alert engine to auto-generate alerts */
+  async evaluateAlerts(): Promise<AlertRecord[]> {
+    const res = await fetch(BASE_URL + '/api/v1/alerts/evaluate', { method: 'POST' });
+    if (!res.ok) throw new Error(`Alert evaluation failed: ${res.status}`);
+    return res.json();
+  },
+
+  /** Get the download URL for a CAP XML export */
+  getCapXmlUrl(alertId: number): string {
+    return `${BASE_URL}/api/v1/alerts/${alertId}/export/cap`;
+  },
+
+  // ── Task 7: Simulator ────────────────────────────────────────
+
+  /** Fetch the full simulation timeline */
+  getSimulationTimeline(rainfallMm = 150, month = 7): Promise<SimulationTimeline> {
+    return get<SimulationTimeline>('/api/v1/simulator/timeline', {
+      rainfall_mm: rainfallMm,
+      month,
+    });
   },
 };

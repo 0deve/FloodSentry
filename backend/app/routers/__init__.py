@@ -6,6 +6,7 @@ from app.routers.impact import router as impact_router
 from app.routers.alerts import router as alerts_router
 from app.routers.copernicus import router as copernicus_router
 from app.routers.ml import router as ml_router
+from app.routers.simulator import router as simulator_router
 
 __all__ = [
     "locations_router",
@@ -14,4 +15,5 @@ __all__ = [
     "alerts_router",
     "copernicus_router",
     "ml_router",
+    "simulator_router",
 ]

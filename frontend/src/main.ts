@@ -13,13 +13,20 @@
 import './style.css';
 import { api, HAZARD_LABELS, HAZARD_SOURCES } from './api.ts';
 import { FloodSentryMap } from './map.ts';
-import type { RegionImpact, ImpactSummary, Infrastructure, Prediction } from './api.ts';
+import type { RegionImpact, ImpactSummary, Infrastructure, Prediction, AlertRecord, SimulationTimeline } from './api.ts';
+import { jsPDF } from 'jspdf';
 
 // ── State ──────────────────────────────────────────────────────
 let impactSummary: ImpactSummary | null = null;
 let activeHazard = 'all';
 let map: FloodSentryMap;
 let locationCoords: Map<string, { lat: number; lon: number }> = new Map();
+// Task 7 state
+let currentRegion: RegionImpact | null = null;
+let currentAlerts: AlertRecord[] = [];
+let simTimeline: SimulationTimeline | null = null;
+let simPlaying = false;
+let simInterval: ReturnType<typeof setInterval> | null = null;
 
 // ── DOM Refs ───────────────────────────────────────────────────
 const regionsList     = document.getElementById('regions-list')!;
@@ -37,6 +44,20 @@ const btnToggle3D     = document.getElementById('btn-toggle-3d')!;
 const hazardBtns      = document.querySelectorAll<HTMLButtonElement>('.hazard-btn');
 const canvas          = document.getElementById('deck-canvas') as HTMLCanvasElement;
 const mapContainer    = document.getElementById('map-container')!;
+// Task 7 DOM refs
+const btnCapXml       = document.getElementById('btn-cap-xml')!;
+const btnPdfReport    = document.getElementById('btn-pdf-report')!;
+const btnOpenSim      = document.getElementById('btn-open-sim')!;
+const simPanel        = document.getElementById('simulator-panel')!;
+const btnCloseSim     = document.getElementById('btn-close-sim')!;
+const btnSimPlay      = document.getElementById('btn-sim-play')!;
+const simSlider       = document.getElementById('sim-slider') as HTMLInputElement;
+const simTimeLabel    = document.getElementById('sim-time-label')!;
+const simRainfall     = document.getElementById('sim-rainfall') as HTMLInputElement;
+const simRainValue    = document.getElementById('sim-rain-value')!;
+const simRegionsEl    = document.getElementById('sim-regions')!;
+const simDescText     = document.getElementById('sim-desc-text')!;
+const simScenario     = document.getElementById('sim-scenario')!;
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatNumber(n: number): string {
@@ -212,6 +233,9 @@ function buildImpactNarrative(
 
 // ── Open Region Detail ─────────────────────────────────────────
 async function openRegionDetail(region: RegionImpact): Promise<void> {
+  // Task 7: Track current region for export actions
+  currentRegion = region;
+
   // Tell map to highlight this region
   map.setSelectedRegion(region.nuts_id);
 
@@ -378,6 +402,15 @@ async function init(): Promise<void> {
     const criticalInfra = await api.getCriticalInfrastructure(impactSummary.regions);
     map.updateCriticalInfrastructure(criticalInfra);
 
+    // ── Task 7: Auto-generate alerts via Alert Engine ──
+    try {
+      currentAlerts = await api.evaluateAlerts();
+      console.log(`[FloodSentry] Alert Engine: ${currentAlerts.length} new alerts generated.`);
+    } catch {
+      // Fallback: load existing alerts
+      try { currentAlerts = await api.getAlerts(); } catch { currentAlerts = []; }
+    }
+
     console.log(`[FloodSentry] Loaded ${impactSummary.regions.length} regions, ${criticalInfra.size} critical with infrastructure`);
 
   } catch (err) {
@@ -392,6 +425,313 @@ async function init(): Promise<void> {
     // Hide map loading even on error
     document.getElementById('map-loading')!.classList.add('hidden');
   }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Task 7: CAP XML Download
+// ══════════════════════════════════════════════════════════════════
+
+btnCapXml.addEventListener('click', async () => {
+  if (!currentRegion) return;
+
+  // Find alert for this region
+  let alert = currentAlerts.find(a => a.nuts_id === currentRegion!.nuts_id);
+
+  // If no alert exists, try to load from API
+  if (!alert) {
+    try {
+      const alerts = await api.getAlerts(currentRegion.nuts_id);
+      alert = alerts[0];
+    } catch { /* ignore */ }
+  }
+
+  if (!alert) {
+    // Create an alert on the fly
+    try {
+      const newAlerts = await api.evaluateAlerts();
+      alert = newAlerts.find(a => a.nuts_id === currentRegion!.nuts_id);
+      if (!alert) {
+        const allAlerts = await api.getAlerts(currentRegion.nuts_id);
+        alert = allAlerts[0];
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (alert) {
+    // Download CAP XML
+    const url = api.getCapXmlUrl(alert.id);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `FloodSentry_CAP_${alert.nuts_id}.xml`;
+    link.click();
+  } else {
+    // Fallback: show notification
+    showNotification('Nu există alertă activă pentru această regiune.', 'warning');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Task 7: PDF Executive Report
+// ══════════════════════════════════════════════════════════════════
+
+btnPdfReport.addEventListener('click', () => {
+  if (!currentRegion) return;
+
+  const region = currentRegion;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  // ── Header ──
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(59, 130, 246); // Accent blue
+  doc.text('FloodSentry', 20, y);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 120, 120);
+  doc.text('EU Flood Risk Digital Twin — Executive Report', 20, y + 8);
+  doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`, 20, y + 14);
+
+  // Divider line
+  y += 22;
+  doc.setDrawColor(59, 130, 246);
+  doc.setLineWidth(0.5);
+  doc.line(20, y, pageWidth - 20, y);
+  y += 10;
+
+  // ── Alert Level Banner ──
+  const alertColors: Record<string, [number, number, number]> = {
+    emergency: [124, 58, 237],
+    critical: [239, 68, 68],
+    warning: [245, 158, 11],
+    info: [34, 197, 94],
+  };
+  const alertColor = alertColors[region.alert_level] || [100, 100, 100];
+  doc.setFillColor(...alertColor);
+  doc.roundedRect(20, y, pageWidth - 40, 14, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${alertLevelLabel(region.alert_level)} — ${region.region_name} (${region.nuts_id})`, 26, y + 9);
+  y += 22;
+
+  // ── Risk Score ──
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Risk Assessment', 20, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  const riskData = [
+    ['Risk Score', `${region.risk_score.toFixed(1)} / 100`],
+    ['Hazard Type', (HAZARD_LABELS[region.hazard_type] || region.hazard_type)],
+    ['Affected Population', formatNumber(region.affected_population)],
+    ['Alert Level', alertLevelLabel(region.alert_level)],
+  ];
+  for (const [label, value] of riskData) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${label}:`, 24, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, 80, y);
+    y += 7;
+  }
+  y += 6;
+
+  // ── Infrastructure at Risk ──
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Infrastructure at Risk', 20, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  if (region.infrastructure_at_risk.length > 0) {
+    for (const item of region.infrastructure_at_risk) {
+      const typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1).replace('_', ' ');
+      doc.setFont('helvetica', 'bold');
+      doc.text(`• ${item.count} ${typeLabel}${item.count > 1 ? 's' : ''}`, 24, y);
+      doc.setFont('helvetica', 'normal');
+      if (item.names.length > 0) {
+        doc.text(`: ${item.names.slice(0, 4).join(', ')}`, 70, y);
+      }
+      y += 7;
+    }
+  } else {
+    doc.text('No critical infrastructure data available.', 24, y);
+    y += 7;
+  }
+  y += 6;
+
+  // ── Flood Source Analysis ──
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Flood Source Analysis', 20, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  const sourceDesc = HAZARD_SOURCES[region.hazard_type] || 'Unknown hazard source.';
+  const sourceLines = doc.splitTextToSize(sourceDesc, pageWidth - 50);
+  doc.text(sourceLines, 24, y);
+  y += sourceLines.length * 6 + 6;
+
+  // ── Impact Summary ──
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Impact Summary', 20, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  const summaryLines = doc.splitTextToSize(region.summary_text, pageWidth - 50);
+  doc.text(summaryLines, 24, y);
+  y += summaryLines.length * 6 + 10;
+
+  // ── Footer ──
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(20, 275, pageWidth - 20, 275);
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text('FloodSentry — CASSINI Hackathon "EU Space for Water" — Powered by Copernicus & Galileo', 20, 280);
+  doc.text(`Report ID: FS-${Date.now().toString(36).toUpperCase()} | Classification: OFFICIAL`, 20, 284);
+
+  // Save
+  doc.save(`FloodSentry_Report_${region.nuts_id}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  showNotification('Raport PDF generat cu succes!', 'success');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Task 7: Hydrologic Simulator (Time-Slider)
+// ══════════════════════════════════════════════════════════════════
+
+btnOpenSim.addEventListener('click', async () => {
+  simPanel.classList.toggle('hidden');
+  btnOpenSim.classList.toggle('active');
+
+  if (!simPanel.classList.contains('hidden') && !simTimeline) {
+    await loadSimulation();
+  }
+});
+
+btnCloseSim.addEventListener('click', () => {
+  simPanel.classList.add('hidden');
+  btnOpenSim.classList.remove('active');
+  stopSimulation();
+});
+
+async function loadSimulation(): Promise<void> {
+  const rainfall = parseInt(simRainfall.value);
+  try {
+    simTimeline = await api.getSimulationTimeline(rainfall, 7);
+    simSlider.max = String(simTimeline.total_steps - 1);
+    simSlider.value = '0';
+    simScenario.textContent = simTimeline.scenario;
+    renderSimStep(0);
+  } catch (err) {
+    console.error('Failed to load simulation:', err);
+    simRegionsEl.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center">Could not load simulation data.</p>';
+  }
+}
+
+function renderSimStep(stepIndex: number): void {
+  if (!simTimeline || stepIndex >= simTimeline.steps.length) return;
+
+  const step = simTimeline.steps[stepIndex];
+  simTimeLabel.textContent = step.label;
+
+  // Build region cards
+  simRegionsEl.innerHTML = step.regions.map(r => {
+    const fillWidth = Math.min(100, r.risk_score);
+    const barColor = riskColor(r.risk_score);
+    const activeClass = r.wave_active ? 'sim-wave-active' : '';
+    return `
+      <div class="sim-region-card ${r.alert_level} ${activeClass}">
+        <div class="sim-region-header">
+          <span class="sim-region-name">${r.name}</span>
+          <span class="sim-region-risk" style="color:${barColor}">${r.risk_score.toFixed(1)}</span>
+        </div>
+        <div class="sim-risk-bar">
+          <div class="sim-risk-fill" style="width:${fillWidth}%;background:${barColor}"></div>
+        </div>
+        <div class="sim-region-meta">
+          <span>${r.wave_active ? '🌊 Wave Active' : '—'}</span>
+          <span>🌧️ ${r.rainfall_mm.toFixed(0)}mm</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Description
+  const activeRegion = step.regions.find(r => r.wave_active && r.risk_score > 30);
+  simDescText.textContent = activeRegion?.description || 'Simulation starting — monitoring upstream conditions.';
+}
+
+btnSimPlay.addEventListener('click', () => {
+  if (simPlaying) {
+    stopSimulation();
+  } else {
+    startSimulation();
+  }
+});
+
+function startSimulation(): void {
+  simPlaying = true;
+  btnSimPlay.textContent = '⏸';
+  btnSimPlay.classList.add('playing');
+
+  simInterval = setInterval(() => {
+    let current = parseInt(simSlider.value);
+    current++;
+    if (current >= parseInt(simSlider.max)) {
+      current = 0; // Loop
+    }
+    simSlider.value = String(current);
+    renderSimStep(current);
+  }, 800);
+}
+
+function stopSimulation(): void {
+  simPlaying = false;
+  btnSimPlay.textContent = '▶';
+  btnSimPlay.classList.remove('playing');
+  if (simInterval) {
+    clearInterval(simInterval);
+    simInterval = null;
+  }
+}
+
+simSlider.addEventListener('input', () => {
+  renderSimStep(parseInt(simSlider.value));
+});
+
+simRainfall.addEventListener('input', () => {
+  simRainValue.textContent = `${simRainfall.value}mm`;
+});
+
+simRainfall.addEventListener('change', async () => {
+  stopSimulation();
+  await loadSimulation();
+});
+
+// ── Notification Helper ────────────────────────────────────────
+function showNotification(message: string, type: 'success' | 'warning' | 'error' = 'success'): void {
+  const existing = document.querySelector('.fs-notification');
+  if (existing) existing.remove();
+
+  const el = document.createElement('div');
+  el.className = `fs-notification fs-notification-${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'}</span> ${message}`;
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => el.classList.add('visible'));
+  setTimeout(() => {
+    el.classList.remove('visible');
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
 }
 
 // ── Boot ───────────────────────────────────────────────────────
