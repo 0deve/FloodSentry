@@ -8,11 +8,12 @@
  */
 
 import type { RegionImpact, Infrastructure } from './api.ts';
-import { nutsToLevel2, isChildOf } from './api.ts';
+
 
 // ── Deck.gl / MapLibre imports ────────────────────────────────
 import { Deck, LightingEffect, AmbientLight, DirectionalLight } from '@deck.gl/core';
-import { GeoJsonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import { GeoJsonLayer, ScatterplotLayer, TextLayer, BitmapLayer } from '@deck.gl/layers';
+import { TileLayer } from '@deck.gl/geo-layers';
 import type { Layer } from '@deck.gl/core';
 
 // ── Constants ─────────────────────────────────────────────────
@@ -74,34 +75,7 @@ function infraIcon(type: string): string {
   return icons[type] ?? '📍';
 }
 
-// ── NUTS-2 Aggregated Risk ─────────────────────────────────────
-/** Aggregate NUTS-3 region data to the NUTS-2 GeoJSON level */
-function aggregateToNuts2(regionData: Map<string, RegionImpact>): Map<string, RegionImpact> {
-  const nuts2Map = new Map<string, RegionImpact>();
-
-  for (const [nuts3Id, region] of regionData.entries()) {
-    const nuts2Id = nutsToLevel2(nuts3Id);
-
-    if (!nuts2Map.has(nuts2Id)) {
-      // Initialize with first child's data
-      nuts2Map.set(nuts2Id, { ...region, nuts_id: nuts2Id });
-    } else {
-      const existing = nuts2Map.get(nuts2Id)!;
-      // Keep the highest risk score
-      if (region.risk_score > existing.risk_score) {
-        nuts2Map.set(nuts2Id, {
-          ...region,
-          nuts_id: nuts2Id,
-          affected_population: existing.affected_population + region.affected_population,
-        });
-      } else {
-        existing.affected_population += region.affected_population;
-      }
-    }
-  }
-
-  return nuts2Map;
-}
+// NUTS-2 Aggregation removed — rendering directly at NUTS-3 level using GeoJSON.
 
 // ── Map Class ─────────────────────────────────────────────────
 export class FloodSentryMap {
@@ -110,7 +84,6 @@ export class FloodSentryMap {
   private is3D = true;
   private nutsGeoJson: object | null = null;
   private regionData: Map<string, RegionImpact> = new Map();
-  private nuts2Data: Map<string, RegionImpact> = new Map();
   private onRegionClick: ((nuts_id: string) => void) | null = null;
   private tooltipEl: HTMLElement;
   private loadingEl: HTMLElement;
@@ -211,14 +184,10 @@ export class FloodSentryMap {
     const layerId = info.layer?.id;
 
     if (layerId === 'nuts-regions') {
-      // GeoJSON layer uses NUTS_ID (level 2)
-      const nuts2Id = (info.object as { properties?: { NUTS_ID?: string } }).properties?.NUTS_ID;
-      if (nuts2Id) {
-        // Find the best matching NUTS-3 region
-        const nuts3Id = this.findBestNuts3ForNuts2(nuts2Id);
-        if (nuts3Id) {
-          this.onRegionClick(nuts3Id);
-        }
+      // GeoJSON layer uses NUTS_ID (level 3)
+      const nutsId = (info.object as { properties?: { NUTS_ID?: string } }).properties?.NUTS_ID;
+      if (nutsId && this.regionData.has(nutsId)) {
+        this.onRegionClick(nutsId);
       }
     } else if (layerId === 'critical-infra-scatter' || layerId === 'selected-infra-icons') {
       // Clicking infrastructure — find the parent region
@@ -229,26 +198,11 @@ export class FloodSentryMap {
     }
   }
 
-  /** Find the best NUTS-3 region that belongs to a NUTS-2 parent */
-  private findBestNuts3ForNuts2(nuts2Id: string): string | null {
-    let bestId: string | null = null;
-    let bestScore = -1;
-
-    for (const [nuts3Id, region] of this.regionData.entries()) {
-      if (isChildOf(nuts3Id, nuts2Id) && region.risk_score > bestScore) {
-        bestScore = region.risk_score;
-        bestId = nuts3Id;
-      }
-    }
-    return bestId;
-  }
-
   /** Update map with new impact data */
   update(regions: RegionImpact[]): void {
     this.regionData.clear();
     regions.forEach(r => this.regionData.set(r.nuts_id, r));
-    // Build NUTS-2 aggregation for GeoJSON coloring
-    this.nuts2Data = aggregateToNuts2(this.regionData);
+    // Remove NUTS-2 aggregation because we have NUTS-3 geojson
     this.render();
   }
 
@@ -274,6 +228,28 @@ export class FloodSentryMap {
     if (!this.deck) return;
     const layers: Layer[] = [];
 
+    // ─── Layer 0: Base Map (CartoDB Dark Matter) ───────────────
+    layers.push(
+      new TileLayer({
+        id: 'carto-dark-matter',
+        data: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        minZoom: 0,
+        maxZoom: 19,
+        tileSize: 256,
+        renderSubLayers: props => {
+          const {
+            bbox: {west, south, east, north}
+          } = props.tile as any;
+
+          return new BitmapLayer(props, {
+            data: undefined,
+            image: props.data,
+            bounds: [west, south, east, north]
+          });
+        }
+      })
+    );
+
     // ─── Layer 1: NUTS GeoJSON (Extruded Polygons) ─────────────
     if (this.nutsGeoJson) {
       layers.push(
@@ -286,38 +262,38 @@ export class FloodSentryMap {
           extruded: this.is3D,
           wireframe: false,
           getElevation: (d: { properties?: { NUTS_ID?: string } }) => {
-            const nuts2Id = d?.properties?.NUTS_ID ?? '';
-            const region = this.nuts2Data.get(nuts2Id);
+            const nutsId = d?.properties?.NUTS_ID ?? '';
+            const region = this.regionData.get(nutsId);
             return region ? region.risk_score * 800 : 0;
           },
           getFillColor: (d: { properties?: { NUTS_ID?: string } }) => {
-            const nuts2Id = d?.properties?.NUTS_ID ?? '';
-            // Highlight selected region's parent
-            if (this.selectedNutsId && isChildOf(this.selectedNutsId, nuts2Id)) {
-              const region = this.nuts2Data.get(nuts2Id);
+            const nutsId = d?.properties?.NUTS_ID ?? '';
+            // Highlight selected region
+            if (this.selectedNutsId && this.selectedNutsId === nutsId) {
+              const region = this.regionData.get(nutsId);
               if (region) {
                 const base = riskToColor(region.risk_score);
                 return [base[0], base[1], base[2], 255] as [number, number, number, number];
               }
             }
-            const region = this.nuts2Data.get(nuts2Id);
-            return region ? riskToColor(region.risk_score) : [30, 40, 60, 80] as [number, number, number, number];
+            const region = this.regionData.get(nutsId);
+            return region ? riskToColor(region.risk_score) : [30, 40, 60, 40] as [number, number, number, number];
           },
           getLineColor: (d: { properties?: { NUTS_ID?: string } }) => {
-            const nuts2Id = d?.properties?.NUTS_ID ?? '';
+            const nutsId = d?.properties?.NUTS_ID ?? '';
             // Glow border for selected region
-            if (this.selectedNutsId && isChildOf(this.selectedNutsId, nuts2Id)) {
+            if (this.selectedNutsId && this.selectedNutsId === nutsId) {
               return [100, 180, 255, 255] as [number, number, number, number];
             }
-            const region = this.nuts2Data.get(nuts2Id);
-            return region ? riskToLineColor(region.risk_score) : [60, 80, 120, 100] as [number, number, number, number];
+            const region = this.regionData.get(nutsId);
+            return region ? riskToLineColor(region.risk_score) : [60, 80, 120, 80] as [number, number, number, number];
           },
           getLineWidth: (d: { properties?: { NUTS_ID?: string } }) => {
-            const nuts2Id = d?.properties?.NUTS_ID ?? '';
-            if (this.selectedNutsId && isChildOf(this.selectedNutsId, nuts2Id)) {
+            const nutsId = d?.properties?.NUTS_ID ?? '';
+            if (this.selectedNutsId && this.selectedNutsId === nutsId) {
               return 400; // Thicker border for selected
             }
-            const region = this.nuts2Data.get(nuts2Id);
+            const region = this.regionData.get(nutsId);
             return region ? 200 : 80;
           },
           // Task 8: Enhanced material properties for realistic lighting
@@ -328,9 +304,9 @@ export class FloodSentryMap {
             specularColor: [80, 160, 255],
           },
           updateTriggers: {
-            getElevation: [this.nuts2Data, this.is3D],
-            getFillColor: [this.nuts2Data, this.selectedNutsId],
-            getLineColor: [this.nuts2Data, this.selectedNutsId],
+            getElevation: [this.regionData, this.is3D],
+            getFillColor: [this.regionData, this.selectedNutsId],
+            getLineColor: [this.regionData, this.selectedNutsId],
             getLineWidth: [this.selectedNutsId],
           },
           // Task 8: Smooth elevation transitions when scores change
@@ -490,10 +466,10 @@ export class FloodSentryMap {
 
     // Handle GeoJSON region hover
     const obj = info.object as { properties?: { NUTS_ID?: string; NUTS_NAME?: string; NAME_LATN?: string } } | undefined;
-    const nuts2Id = obj?.properties?.NUTS_ID;
+    const nutsId = obj?.properties?.NUTS_ID;
 
-    if (nuts2Id && this.nuts2Data.has(nuts2Id)) {
-      const region = this.nuts2Data.get(nuts2Id)!;
+    if (nutsId && this.regionData.has(nutsId)) {
+      const region = this.regionData.get(nutsId)!;
       const geoName = obj?.properties?.NUTS_NAME || obj?.properties?.NAME_LATN || region.region_name;
 
       this.tooltipEl.innerHTML = `
