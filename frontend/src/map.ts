@@ -11,7 +11,7 @@ import type { RegionImpact, Infrastructure } from './api.ts';
 import { nutsToLevel2, isChildOf } from './api.ts';
 
 // ── Deck.gl / MapLibre imports ────────────────────────────────
-import { Deck } from '@deck.gl/core';
+import { Deck, LightingEffect, AmbientLight, DirectionalLight } from '@deck.gl/core';
 import { GeoJsonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import type { Layer } from '@deck.gl/core';
 
@@ -122,6 +122,13 @@ export class FloodSentryMap {
 
   private canvasEl: HTMLCanvasElement;
 
+  // Task 8: Pulsing animation state for critical infrastructure markers
+  private pulsePhase = 0;
+  private pulseAnimFrame: number | null = null;
+
+  // Task 8: Lighting effect for 3D model
+  private lightingEffect: LightingEffect;
+
   constructor(
     canvasEl: HTMLCanvasElement,
     _containerEl: HTMLElement,
@@ -129,6 +136,30 @@ export class FloodSentryMap {
     this.canvasEl = canvasEl;
     this.tooltipEl = document.getElementById('map-tooltip')!;
     this.loadingEl = document.getElementById('map-loading')!;
+
+    // Task 8: Create realistic lighting setup for 3D Digital Twin
+    const ambientLight = new AmbientLight({
+      color: [255, 255, 255],
+      intensity: 1.2,
+    });
+
+    const sunLight = new DirectionalLight({
+      color: [255, 243, 224],   // Warm sunlight tint
+      intensity: 1.8,
+      direction: [-3, -9, -1],  // Coming from upper-left
+    });
+
+    const fillLight = new DirectionalLight({
+      color: [180, 200, 255],   // Cool blue fill
+      intensity: 0.6,
+      direction: [5, 8, -2],    // Opposing side for depth
+    });
+
+    this.lightingEffect = new LightingEffect({
+      ambientLight,
+      sunLight,
+      fillLight,
+    });
   }
 
   async init(onRegionClick: (nuts_id: string) => void): Promise<void> {
@@ -153,6 +184,8 @@ export class FloodSentryMap {
         this.viewState = viewState;
       },
       layers: [],
+      // Task 8: Apply lighting effects for 3D depth and shadows
+      effects: [this.lightingEffect],
       getTooltip: () => null, // we handle tooltip manually
       onHover: (info: any) => {
         this.handleHover(info);
@@ -161,6 +194,9 @@ export class FloodSentryMap {
         this.handleClick(info);
       },
     });
+
+    // Task 8: Start pulsing animation loop for critical markers
+    this.startPulseAnimation();
 
     // Hide loading after deck initializes
     setTimeout(() => {
@@ -284,11 +320,12 @@ export class FloodSentryMap {
             const region = this.nuts2Data.get(nuts2Id);
             return region ? 200 : 80;
           },
+          // Task 8: Enhanced material properties for realistic lighting
           material: {
-            ambient: 0.35,
-            diffuse: 0.6,
-            shininess: 32,
-            specularColor: [60, 130, 246],
+            ambient: 0.3,
+            diffuse: 0.7,
+            shininess: 48,
+            specularColor: [80, 160, 255],
           },
           updateTriggers: {
             getElevation: [this.nuts2Data, this.is3D],
@@ -296,9 +333,10 @@ export class FloodSentryMap {
             getLineColor: [this.nuts2Data, this.selectedNutsId],
             getLineWidth: [this.selectedNutsId],
           },
+          // Task 8: Smooth elevation transitions when scores change
           transitions: {
-            getElevation: 600,
-            getFillColor: 400,
+            getElevation: { duration: 1200, easing: (t: number) => 1 - Math.pow(1 - t, 3) },
+            getFillColor: { duration: 600, easing: (t: number) => t },
           },
         }),
       );
@@ -342,8 +380,48 @@ export class FloodSentryMap {
       allCriticalInfra.push(...infra);
     }
 
+    // Task 8: Compute pulsing scale for critical markers
+    const pulseScale = 1.0 + 0.25 * Math.sin(this.pulsePhase);
+
+    // Determine which infrastructure types should pulse (hospital/school at critical risk)
+    const criticalNutsIds = new Set<string>();
+    for (const [nutsId] of this.criticalInfraData) {
+      criticalNutsIds.add(nutsId);
+    }
+
     if (allCriticalInfra.length > 0) {
-      // ScatterplotLayer — colored dots for infrastructure
+      // Task 8: Outer pulse ring for critical hospitals/schools — pulsing glow
+      const pulsingItems = allCriticalInfra.filter(
+        d => d.type === 'hospital' || d.type === 'school'
+      );
+
+      if (pulsingItems.length > 0) {
+        const pulseOpacity = Math.floor(60 + 40 * Math.sin(this.pulsePhase));
+        layers.push(
+          new ScatterplotLayer({
+            id: 'critical-infra-pulse-ring',
+            data: pulsingItems,
+            pickable: false,
+            stroked: false,
+            filled: true,
+            radiusMinPixels: 6,
+            radiusMaxPixels: 28,
+            getPosition: (d: Infrastructure) => [d.longitude, d.latitude, this.is3D ? 1100 : 0],
+            getRadius: (d: Infrastructure) => infraMarkerRadius(d.type) * pulseScale * 1.8,
+            getFillColor: (d: Infrastructure) => {
+              const base = infraMarkerColor(d.type);
+              return [base[0], base[1], base[2], pulseOpacity] as [number, number, number, number];
+            },
+            updateTriggers: {
+              getPosition: [this.is3D],
+              getRadius: [pulseScale],
+              getFillColor: [pulseOpacity],
+            },
+          }),
+        );
+      }
+
+      // ScatterplotLayer — solid colored dots for infrastructure
       layers.push(
         new ScatterplotLayer({
           id: 'critical-infra-scatter',
@@ -471,5 +549,28 @@ export class FloodSentryMap {
   zoomOut(): void {
     this.viewState = { ...this.viewState, zoom: Math.max(this.viewState.zoom - 1, 2), transitionDuration: 300 };
     this.deck?.setProps({ initialViewState: this.viewState });
+  }
+
+  // ── Task 8: Pulsing Animation for Critical Infrastructure ─────
+
+  /** Start the continuous pulse animation loop */
+  private startPulseAnimation(): void {
+    const animate = () => {
+      this.pulsePhase += 0.06;
+      // Only re-render if we have critical infrastructure to animate
+      if (this.criticalInfraData.size > 0) {
+        this.render();
+      }
+      this.pulseAnimFrame = requestAnimationFrame(animate);
+    };
+    this.pulseAnimFrame = requestAnimationFrame(animate);
+  }
+
+  /** Stop the pulse animation (cleanup) */
+  stopPulseAnimation(): void {
+    if (this.pulseAnimFrame !== null) {
+      cancelAnimationFrame(this.pulseAnimFrame);
+      this.pulseAnimFrame = null;
+    }
   }
 }
