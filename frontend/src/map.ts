@@ -508,9 +508,21 @@ export class FloodSentryMap {
     this.deck.setProps({ initialViewState: { ...INITIAL_VIEW_STATE, transitionDuration: 1000 } });
   }
 
-  /** Toggle 3D extrusion */
+  /** Toggle 3D extrusion and set top-down camera for 2D */
   toggle3D(): boolean {
     this.is3D = !this.is3D;
+    
+    if (this.deck) {
+      this.deck.setProps({
+        initialViewState: {
+          ...this.viewState,
+          pitch: this.is3D ? 50 : 0,
+          bearing: this.is3D ? -10 : 0,
+          transitionDuration: 1000,
+        }
+      });
+    }
+    
     this.render();
     return this.is3D;
   }

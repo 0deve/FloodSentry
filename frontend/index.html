@@ -171,7 +171,7 @@
             <button class="map-btn" id="btn-reset-view" title="Reset View">⌂</button>
             <button class="map-btn" id="btn-toggle-3d" title="Toggle 3D">3D</button>
             <div class="map-controls-divider"></div>
-            <button class="map-btn sim-toggle-btn" id="btn-open-sim" title="Open Simulator">▶</button>
+            <button class="map-btn sim-toggle-btn" id="btn-open-sim" title="Open Forecast">📅</button>
           </div>
           <!-- Legend -->
           <div id="map-legend">
@@ -208,33 +208,30 @@
             <span class="wm-label">Galileo</span>
           </div>
 
-          <!-- Task 7: Hydrologic Simulator Panel -->
+          <!-- Real Forecast Slider Panel -->
           <div id="simulator-panel" class="hidden">
             <div id="sim-header">
               <div id="sim-title-row">
-                <span class="sim-icon">🌊</span>
-                <h3 id="sim-title">Hydrologic Simulator</h3>
-                <span id="sim-scenario" class="sim-badge"></span>
+                <span class="sim-icon">🛰️</span>
+                <h3 id="sim-title">Live XGBoost Forecast</h3>
+                <span id="sim-scenario" class="sim-badge">Copernicus + Open-Meteo</span>
               </div>
-              <button id="btn-close-sim" class="sim-close" title="Close Simulator">✕</button>
+              <button id="btn-close-sim" class="sim-close" title="Close Forecast">✕</button>
             </div>
             <div id="sim-controls">
               <div id="sim-slider-row">
-                <button id="btn-sim-play" class="sim-play-btn" title="Play/Pause">▶</button>
-                <input type="range" id="sim-slider" min="0" max="24" value="0" step="1" />
-                <span id="sim-time-label" class="sim-time">T=0</span>
+                <input type="range" id="sim-slider" min="0" max="7" value="0" step="1" />
+                <span id="sim-time-label" class="sim-time">Today</span>
               </div>
-              <div id="sim-rain-row">
-                <label for="sim-rainfall">🌧️ Rainfall (mm):</label>
-                <input type="range" id="sim-rainfall" min="0" max="400" value="150" step="10" />
-                <span id="sim-rain-value">150mm</span>
+              <div id="demo-controls" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <label class="toggle-container" style="display: flex; align-items: center; cursor: pointer; color: #ff4d4d; font-weight: 600; font-size: 0.9rem;">
+                  <input type="checkbox" id="chk-simulate-storm" style="width: 18px; height: 18px; margin-right: 12px; cursor: pointer;" />
+                  <span>☢️ SIMULARE FURTUNĂ EXTREMĂ (ROMÂNIA)</span>
+                </label>
               </div>
-            </div>
-            <div id="sim-regions">
-              <!-- Dynamically populated -->
             </div>
             <div id="sim-description">
-              <p id="sim-desc-text"></p>
+              <p id="sim-desc-text">Model running on latest satellite and weather data.</p>
             </div>
           </div>
         </main>

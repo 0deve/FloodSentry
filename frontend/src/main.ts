@@ -13,7 +13,7 @@
 import './style.css';
 import { api, HAZARD_LABELS, HAZARD_SOURCES } from './api.ts';
 import { FloodSentryMap } from './map.ts';
-import type { RegionImpact, ImpactSummary, Infrastructure, Prediction, AlertRecord, SimulationTimeline } from './api.ts';
+import type { RegionImpact, ImpactSummary, Infrastructure, Prediction, AlertRecord } from './api.ts';
 import { jsPDF } from 'jspdf';
 
 // ── State ──────────────────────────────────────────────────────
@@ -24,9 +24,6 @@ let locationCoords: Map<string, { lat: number; lon: number }> = new Map();
 // Task 7 state
 let currentRegion: RegionImpact | null = null;
 let currentAlerts: AlertRecord[] = [];
-let simTimeline: SimulationTimeline | null = null;
-let simPlaying = false;
-let simInterval: ReturnType<typeof setInterval> | null = null;
 
 // ── DOM Refs ───────────────────────────────────────────────────
 const regionsList     = document.getElementById('regions-list')!;
@@ -50,14 +47,10 @@ const btnPdfReport    = document.getElementById('btn-pdf-report')!;
 const btnOpenSim      = document.getElementById('btn-open-sim')!;
 const simPanel        = document.getElementById('simulator-panel')!;
 const btnCloseSim     = document.getElementById('btn-close-sim')!;
-const btnSimPlay      = document.getElementById('btn-sim-play')!;
 const simSlider       = document.getElementById('sim-slider') as HTMLInputElement;
 const simTimeLabel    = document.getElementById('sim-time-label')!;
-const simRainfall     = document.getElementById('sim-rainfall') as HTMLInputElement;
-const simRainValue    = document.getElementById('sim-rain-value')!;
-const simRegionsEl    = document.getElementById('sim-regions')!;
-const simDescText     = document.getElementById('sim-desc-text')!;
 const simScenario     = document.getElementById('sim-scenario')!;
+const chkSimulateStorm = document.getElementById('chk-simulate-storm') as HTMLInputElement;
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatNumber(n: number): string {
@@ -605,116 +598,67 @@ btnPdfReport.addEventListener('click', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════
-// Task 7: Hydrologic Simulator (Time-Slider)
+// Task 7: Live Forecast Slider
 // ══════════════════════════════════════════════════════════════════
 
-btnOpenSim.addEventListener('click', async () => {
+btnOpenSim.addEventListener('click', () => {
   simPanel.classList.toggle('hidden');
   btnOpenSim.classList.toggle('active');
-
-  if (!simPanel.classList.contains('hidden') && !simTimeline) {
-    await loadSimulation();
-  }
 });
 
 btnCloseSim.addEventListener('click', () => {
   simPanel.classList.add('hidden');
   btnOpenSim.classList.remove('active');
-  stopSimulation();
 });
 
-async function loadSimulation(): Promise<void> {
-  const rainfall = parseInt(simRainfall.value);
-  try {
-    simTimeline = await api.getSimulationTimeline(rainfall, 7);
-    simSlider.max = String(simTimeline.total_steps - 1);
-    simSlider.value = '0';
-    simScenario.textContent = simTimeline.scenario;
-    renderSimStep(0);
-  } catch (err) {
-    console.error('Failed to load simulation:', err);
-    simRegionsEl.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center">Could not load simulation data.</p>';
-  }
-}
+simSlider.addEventListener('input', async () => {
+  const daysAhead = parseInt(simSlider.value);
+  const simulateStorm = chkSimulateStorm?.checked || false;
 
-function renderSimStep(stepIndex: number): void {
-  if (!simTimeline || stepIndex >= simTimeline.steps.length) return;
-
-  const step = simTimeline.steps[stepIndex];
-  simTimeLabel.textContent = step.label;
-
-  // Build region cards
-  simRegionsEl.innerHTML = step.regions.map(r => {
-    const fillWidth = Math.min(100, r.risk_score);
-    const barColor = riskColor(r.risk_score);
-    const activeClass = r.wave_active ? 'sim-wave-active' : '';
-    return `
-      <div class="sim-region-card ${r.alert_level} ${activeClass}">
-        <div class="sim-region-header">
-          <span class="sim-region-name">${r.name}</span>
-          <span class="sim-region-risk" style="color:${barColor}">${r.risk_score.toFixed(1)}</span>
-        </div>
-        <div class="sim-risk-bar">
-          <div class="sim-risk-fill" style="width:${fillWidth}%;background:${barColor}"></div>
-        </div>
-        <div class="sim-region-meta">
-          <span>${r.wave_active ? '🌊 Wave Active' : '—'}</span>
-          <span>🌧️ ${r.rainfall_mm.toFixed(0)}mm</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  // Description
-  const activeRegion = step.regions.find(r => r.wave_active && r.risk_score > 30);
-  simDescText.textContent = activeRegion?.description || 'Simulation starting — monitoring upstream conditions.';
-}
-
-btnSimPlay.addEventListener('click', () => {
-  if (simPlaying) {
-    stopSimulation();
+  if (daysAhead === 0) {
+    simTimeLabel.textContent = 'Today';
+  } else if (daysAhead === 1) {
+    simTimeLabel.textContent = 'Tomorrow';
   } else {
-    startSimulation();
+    simTimeLabel.textContent = `+${daysAhead} Days`;
+  }
+  
+  // Show loading state
+  document.getElementById('map-loading')!.classList.remove('hidden');
+  
+  try {
+    // Fetch live predictions for the selected day
+    impactSummary = await api.getImpactSummary(0, daysAhead, simulateStorm);
+    
+    // Update UI
+    updateStatsBar(impactSummary);
+    renderRegionList(impactSummary.regions);
+    map.update(impactSummary.regions);
+    
+    // Auto-display infrastructure for critical regions
+    const criticalInfra = await api.getCriticalInfrastructure(impactSummary.regions);
+    map.updateCriticalInfrastructure(criticalInfra);
+  } catch (e) {
+    console.error("Forecast failed:", e);
+    showNotification("Failed to load forecast data.", "error");
+  } finally {
+    document.getElementById('map-loading')!.classList.add('hidden');
   }
 });
 
-function startSimulation(): void {
-  simPlaying = true;
-  btnSimPlay.textContent = '⏸';
-  btnSimPlay.classList.add('playing');
-
-  simInterval = setInterval(() => {
-    let current = parseInt(simSlider.value);
-    current++;
-    if (current >= parseInt(simSlider.max)) {
-      current = 0; // Loop
-    }
-    simSlider.value = String(current);
-    renderSimStep(current);
-  }, 800);
-}
-
-function stopSimulation(): void {
-  simPlaying = false;
-  btnSimPlay.textContent = '▶';
-  btnSimPlay.classList.remove('playing');
-  if (simInterval) {
-    clearInterval(simInterval);
-    simInterval = null;
+chkSimulateStorm?.addEventListener('change', () => {
+  // Refresh the data using current slider value
+  simSlider.dispatchEvent(new Event('input'));
+  
+  if (chkSimulateStorm.checked) {
+    showNotification("Simulare FURTUNĂ EXTREMĂ activată!", "warning");
+    simScenario.textContent = "EXTREME STORM SIMULATION";
+    simScenario.classList.add('emergency-badge');
+  } else {
+    showNotification("Revenire la date meteo reale.", "success");
+    simScenario.textContent = "Copernicus + Open-Meteo";
+    simScenario.classList.remove('emergency-badge');
   }
-}
-
-simSlider.addEventListener('input', () => {
-  renderSimStep(parseInt(simSlider.value));
-});
-
-simRainfall.addEventListener('input', () => {
-  simRainValue.textContent = `${simRainfall.value}mm`;
-});
-
-simRainfall.addEventListener('change', async () => {
-  stopSimulation();
-  await loadSimulation();
 });
 
 // ── Notification Helper ────────────────────────────────────────

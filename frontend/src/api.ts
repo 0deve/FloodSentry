@@ -144,7 +144,7 @@ export function isChildOf(nuts3: string, nuts2: string): boolean {
 
 // ── Fetch helpers ──────────────────────────────────────────────
 
-async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
+async function get<T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> {
   const url = new URL(BASE_URL + path);
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
@@ -167,9 +167,8 @@ export const api = {
     return get<Infrastructure[]>(`/api/v1/locations/${nutsId}/infrastructure`);
   },
 
-  /** Get impact summary across all regions */
-  getImpactSummary(minRisk = 30): Promise<ImpactSummary> {
-    return get<ImpactSummary>('/api/v1/impact/summary', { min_risk: minRisk });
+  getImpactSummary(minRisk = 30, daysAhead = 0, simulateStorm = false): Promise<ImpactSummary> {
+    return get<ImpactSummary>('/api/v1/impact/summary', { min_risk: minRisk, days_ahead: daysAhead, simulate_storm: simulateStorm });
   },
 
   /** Get predictions filtered by hazard type */

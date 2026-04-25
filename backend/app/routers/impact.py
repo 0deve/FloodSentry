@@ -8,6 +8,8 @@ from app.database import get_db
 from app.models.location import Location
 from app.models.infrastructure import CriticalInfrastructure
 from app.models.prediction import FloodPrediction
+import random
+import hashlib
 from app.schemas.impact import (
     ImpactSummaryResponse,
     RegionImpact,
@@ -55,9 +57,13 @@ def _build_summary_text(
     return " ".join(parts)
 
 
+from datetime import datetime, timedelta, timezone
+
 @router.get("/summary", response_model=ImpactSummaryResponse)
 def get_impact_summary(
     min_risk: float = Query(default=30.0, ge=0, le=100),
+    days_ahead: int = Query(default=0, ge=0, le=7),
+    simulate_storm: bool = Query(default=False, description="Simulate massive storm over Romania for demo"),
     db: Session = Depends(get_db),
 ):
     """Return an aggregated impact summary across all NUTS regions.
@@ -69,13 +75,19 @@ def get_impact_summary(
 
     This is the core of the Impact-Based Forecasting feature.
     """
-    # Get the latest (highest-risk) prediction per region above threshold
-    predictions = (
-        db.query(FloodPrediction)
-        .filter(FloodPrediction.risk_score >= min_risk)
-        .order_by(FloodPrediction.risk_score.desc())
-        .all()
-    )
+    
+    target_date = datetime.now(timezone.utc) + timedelta(days=days_ahead)
+    
+    # Get the latest predictions
+    query = db.query(FloodPrediction)
+    
+    if not simulate_storm:
+        query = query.filter(FloodPrediction.risk_score >= min_risk)
+    
+    # Filter by the requested forecast day (sqlite compatible approach for dates)
+    query = query.filter(func.date(FloodPrediction.predicted_at) == target_date.date())
+    
+    predictions = query.order_by(FloodPrediction.risk_score.desc()).all()
 
     # Deduplicate: keep highest risk per nuts_id
     seen: dict[str, FloodPrediction] = {}
@@ -89,9 +101,41 @@ def get_impact_summary(
     regions: list[RegionImpact] = []
 
     for nuts_id, pred in seen.items():
-        # Fetch location info
+        # Fetch location info first so we can use its coordinates
         location = db.query(Location).filter(Location.nuts_id == nuts_id).first()
         region_name = location.name if location else nuts_id
+
+        # Apply storm simulation overlay (Scattered Europe-wide)
+        if simulate_storm and location:
+            # Deterministic vulnerability factor per NUTS ID (0.0 to 1.0)
+            h = int(hashlib.md5(nuts_id.encode('utf-8')).hexdigest(), 16)
+            vuln_factor = (h % 100) / 100.0
+            
+            # Base potential is scattered globally across all Europe
+            max_potential = 5.0 + (vuln_factor * 25.0)
+            
+            # The storm builds up over the 7 days (days_ahead)
+            intensity = max_potential + (days_ahead * 10.0) * vuln_factor
+            
+            # Add scattered noise
+            storm_risk = intensity * (0.8 + vuln_factor * 0.5)
+            
+            if storm_risk > 15:
+                pred.risk_score = min(98.5, max(pred.risk_score, storm_risk))
+                # Flash floods early on, river floods later
+                pred.hazard_type = "pluvial" if days_ahead < 3 else "fluvial"
+                
+                # Dynamic population calculation (much smaller % affected, highly realistic)
+                base_pop = 100000 + (h % 700000)
+                # Only ~1-3% of people are actually affected by floods even at 100% risk
+                pred.affected_population = int(base_pop * (pred.risk_score / 100.0) * 0.025)
+                
+            # Keep baseline weather non-zero visually for the rest of Europe
+            elif pred.risk_score < 5.0:
+                pred.risk_score = 5.0 + random.uniform(0.1, 4.0)
+            
+        if pred.risk_score < min_risk:
+            continue
 
         # Fetch infrastructure at risk in this region
         infra_rows = (
