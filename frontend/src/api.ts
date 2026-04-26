@@ -1,7 +1,6 @@
 /**
  * FloodSentry API Client
  * Communicates with the FastAPI backend at VITE_API_URL.
- * Task 6: Full frontend↔backend integration with NUTS mapping.
  */
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8001';
@@ -58,6 +57,9 @@ export interface RegionImpact {
   infrastructure_at_risk: InfrastructureAtRisk[];
   alert_level: 'info' | 'warning' | 'critical' | 'emergency';
   summary_text: string;
+  rainfall_mm?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface ImpactSummary {
@@ -216,7 +218,8 @@ export const api = {
     }
   },
 
-  // ── Task 7: Alerts ────────────────────────────────────────────
+  // Alerts
+  // ─────────────────────────────────────────────────────────────
 
   /** List active alerts */
   getAlerts(nutsId?: string): Promise<AlertRecord[]> {
@@ -237,13 +240,15 @@ export const api = {
     return `${BASE_URL}/api/v1/alerts/${alertId}/export/cap`;
   },
 
-  // ── Task 7: Simulator ────────────────────────────────────────
+  // Simulator
+  // ─────────────────────────────────────────────────────────────
 
   /** Fetch the full simulation timeline */
-  getSimulationTimeline(rainfallMm = 150, month = 7): Promise<SimulationTimeline> {
+  getSimulationTimeline(rainfallMm = 150, month = 7, stormType = 'front'): Promise<SimulationTimeline> {
     return get<SimulationTimeline>('/api/v1/simulator/timeline', {
       rainfall_mm: rainfallMm,
       month,
+      storm_type: stormType
     });
   },
 

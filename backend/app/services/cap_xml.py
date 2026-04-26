@@ -14,8 +14,7 @@ from xml.dom import minidom
 
 from app.models.alert import Alert
 
-
-# ── CAP Constants ───────────────────────────────────────────────
+# CAP Constants ───────────────────────────────────────────────
 CAP_NAMESPACE = "urn:oasis:names:tc:emergency:cap:1.2"
 SENDER = "floodsentry@igsu.ro"
 STATUS = "Actual"
@@ -23,7 +22,7 @@ MSG_TYPE = "Alert"
 SCOPE = "Public"
 CATEGORY = "Met"
 EVENT = "Severe Flood Warning"
-LANGUAGE = "ro-RO"
+LANGUAGE = "en-US"
 
 # Map internal levels → CAP severity + urgency
 SEVERITY_MAP = {
@@ -34,26 +33,20 @@ SEVERITY_MAP = {
 }
 
 # NUTS region → approximate polygon centroids (for demo)
-# In production this would come from a GeoJSON database
 REGION_POLYGONS = {
     "RO224": "45.43,28.00 45.55,28.10 45.50,28.25 45.40,28.15 45.43,28.00",
-    "RO226": "45.30,27.80 45.42,27.90 45.38,28.05 45.28,27.95 45.30,27.80",
-    "RO216": "46.50,27.70 46.62,27.80 46.58,27.95 46.48,27.85 46.50,27.70",
-    "RO225": "45.25,27.40 45.37,27.50 45.33,27.65 45.23,27.55 45.25,27.40",
-    "RO211": "46.90,26.30 47.02,26.40 46.98,26.55 46.88,26.45 46.90,26.30",
-    "HU333": "46.25,20.15 46.37,20.25 46.33,20.40 46.23,20.30 46.25,20.15",
-    "BG334": "43.85,25.95 43.97,26.05 43.93,26.20 43.83,26.10 43.85,25.95",
+    "RO225": "45.18,28.80 45.30,28.90 45.26,29.05 45.16,28.95 45.18,28.80",
+    "RO221": "45.27,27.96 45.39,28.06 45.35,28.21 45.25,28.11 45.27,27.96",
+    "RO213": "47.15,27.59 47.27,27.69 47.23,27.84 47.13,27.74 47.15,27.59",
 }
 
 # NUTS region → area description
 REGION_AREA_DESC = {
-    "RO224": "Județul Galați (NUTS RO224)",
-    "RO226": "Județul Vrancea (NUTS RO226)",
-    "RO216": "Județul Vaslui (NUTS RO216)",
-    "RO225": "Județul Buzău (NUTS RO225)",
-    "RO211": "Județul Bacău (NUTS RO211)",
-    "HU333": "Csongrád-Csanád megye (NUTS HU333)",
-    "BG334": "Oblast Pleven (NUTS BG334)",
+    "RO224": "Galati County (NUTS RO224)",
+    "RO225": "Tulcea County (NUTS RO225)",
+    "RO221": "Braila County (NUTS RO221)",
+    "RO213": "Iasi County (NUTS RO213)",
+    "RO321": "Bucharest Municipality (NUTS RO321)",
 }
 
 
@@ -103,14 +96,14 @@ def generate_cap_xml(alert: Alert) -> str:
 
     # Headline & description
     _add_text(info, "headline", alert.title or f"Flood Alert — {alert.nuts_id}")
-    _add_text(info, "description", alert.description or "Risc de inundație detectat în regiunea monitorizată.")
+    _add_text(info, "description", alert.description or "Flood risk detected in the monitored region.")
     _add_text(info, "instruction", _get_instructions(alert.level))
 
     # Web link
     _add_text(info, "web", "https://floodsentry.eu/alerts")
 
     # Contact
-    _add_text(info, "contact", "IGSU — Inspectoratul General pentru Situații de Urgență")
+    _add_text(info, "contact", "Emergency Response Coordination Centre (ERCC)")
 
     # <area> block
     area = ET.SubElement(info, "area")
@@ -155,22 +148,22 @@ def _get_instructions(level: str) -> str:
     """Get evacuation/preparedness instructions based on severity."""
     instructions = {
         "emergency": (
-            "EVACUARE IMEDIATĂ: Părăsiți imediat zona luncii inundabile. "
-            "Urmați indicațiile autorităților locale. Evitați traversarea "
-            "cursurilor de apă. Contactați 112 în caz de urgență."
+            "IMMEDIATE EVACUATION: Leave the floodplain area immediately. "
+            "Follow local authority directions. Do not cross water "
+            "currents. Contact emergency services (112) for assistance."
         ),
         "critical": (
-            "PREGĂTIRE EVACUARE: Fiți pregătiți să evacuați zona în "
-            "următoarele ore. Asigurați-vă că aveți un plan de evacuare. "
-            "Monitorizați comunicatele oficiale."
+            "PREPARE TO EVACUATE: Be ready to leave the area within the "
+            "coming hours. Ensure you have an evacuation plan ready. "
+            "Monitor official communications."
         ),
         "warning": (
-            "ATENȚIE: Risc moderat de inundație. Evitați zonele joase și "
-            "albiile râurilor. Urmăriți evoluția situației meteorologice."
+            "ATTENTION: Moderate flood risk. Avoid low-lying areas and "
+            "riverbeds. Monitor weather updates and local news."
         ),
         "info": (
-            "INFORMARE: Risc scăzut de inundație. Mențineți vigilența și "
-            "urmăriți buletinele meteorologice."
+            "INFORMATION: Low flood risk. Maintain awareness and monitor "
+            "weather bulletins."
         ),
     }
     return instructions.get(level, instructions["info"])

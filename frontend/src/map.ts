@@ -1,6 +1,5 @@
 /**
  * FloodSentry — Deck.gl 3D Digital Twin Map
- * Task 6: Full integration — NUTS GeoJSON ↔ predictions ↔ infrastructure.
  *
  * - Renders NUTS-2 extruded polygons colored by aggregated risk
  * - Automatically shows infrastructure markers for critical/emergency regions
@@ -94,11 +93,11 @@ export class FloodSentryMap {
 
   private canvasEl: HTMLCanvasElement;
 
-  // Task 8: Pulsing animation state for critical infrastructure markers
+  // Pulsing animation state for critical infrastructure markers
   private pulsePhase = 0;
   private pulseAnimFrame: number | null = null;
 
-  // Task 8: Lighting effect for 3D model
+  // Lighting effect for 3D model
   private lightingEffect: LightingEffect;
 
   constructor(
@@ -109,7 +108,7 @@ export class FloodSentryMap {
     this.tooltipEl = document.getElementById('map-tooltip')!;
     this.loadingEl = document.getElementById('map-loading')!;
 
-    // Task 8: Create realistic lighting setup for 3D Digital Twin
+    // Create realistic lighting setup for 3D Digital Twin
     const ambientLight = new AmbientLight({
       color: [255, 255, 255],
       intensity: 1.2,
@@ -156,7 +155,7 @@ export class FloodSentryMap {
         this.viewState = viewState;
       },
       layers: [],
-      // Task 8: Apply lighting effects for 3D depth and shadows
+      // Apply lighting effects for 3D depth and shadows
       effects: [this.lightingEffect],
       getTooltip: () => null, // we handle tooltip manually
       onHover: (info: any) => {
@@ -167,7 +166,7 @@ export class FloodSentryMap {
       },
     });
 
-    // Task 8: Start pulsing animation loop for critical markers
+    // Start pulsing animation loop for critical markers
     this.startPulseAnimation();
 
     // Hide loading after deck initializes
@@ -199,9 +198,10 @@ export class FloodSentryMap {
 
   /** Update map with new impact data */
   update(regions: RegionImpact[]): void {
-    this.regionData.clear();
-    regions.forEach(r => this.regionData.set(r.nuts_id, r));
-    // Remove NUTS-2 aggregation because we have NUTS-3 geojson
+    // Reassign Map to trigger Deck.gl shallow comparison for updateTriggers
+    const newRegionData = new Map<string, RegionImpact>();
+    regions.forEach(r => newRegionData.set(r.nuts_id, r));
+    this.regionData = newRegionData;
     this.render();
   }
 
@@ -297,7 +297,7 @@ export class FloodSentryMap {
             const region = this.regionData.get(nutsId);
             return region ? 200 : 80;
           },
-          // Task 8: Enhanced material properties for realistic lighting
+          // Enhanced material properties for realistic lighting
           material: {
             ambient: 0.3,
             diffuse: 0.7,
@@ -310,7 +310,7 @@ export class FloodSentryMap {
             getLineColor: [this.regionData, this.selectedNutsId],
             getLineWidth: [this.selectedNutsId],
           },
-          // Task 8: Smooth elevation transitions when scores change
+          // Smooth elevation transitions when scores change
           transitions: {
             getElevation: { duration: 1200, easing: (t: number) => 1 - Math.pow(1 - t, 3) },
             getFillColor: { duration: 600, easing: (t: number) => t },
@@ -357,7 +357,7 @@ export class FloodSentryMap {
       allCriticalInfra.push(...infra);
     }
 
-    // Task 8: Compute pulsing scale for critical markers
+    // Compute pulsing scale for critical markers
     const pulseScale = 1.0 + 0.25 * Math.sin(this.pulsePhase);
 
     // Determine which infrastructure types should pulse (hospital/school at critical risk)
@@ -367,7 +367,7 @@ export class FloodSentryMap {
     }
 
     if (allCriticalInfra.length > 0) {
-      // Task 8: Outer pulse ring for critical hospitals/schools — pulsing glow
+      // Outer pulse ring for critical hospitals/schools — pulsing glow
       const pulsingItems = allCriticalInfra.filter(
         d => d.type === 'hospital' || d.type === 'school'
       );
@@ -432,12 +432,54 @@ export class FloodSentryMap {
           getText: (d: Infrastructure) => infraIcon(d.type),
           getSize: 32,
           getColor: [255, 255, 255, 255],
+          characterSet: 'auto',
           getAngle: 0,
           getTextAnchor: 'middle' as const,
           getAlignmentBaseline: 'center' as const,
           updateTriggers: {
             getPosition: [this.is3D],
           },
+        })
+      );
+    }
+
+    // ─── Layer 5: Simulation Rain Clouds ─────────
+    // Shows active rainfall using blue cylinder markers
+    // Pass ALL regions so indices remain stable (prevents dots jumping around)
+    const allRegions = Array.from(this.regionData.values())
+        .filter(r => r.longitude !== undefined && r.latitude !== undefined)
+        .sort((a, b) => a.nuts_id.localeCompare(b.nuts_id));
+
+    if (allRegions.length > 0) {
+      layers.push(
+        new ScatterplotLayer({
+          id: 'sim-rain-scatter',
+          data: allRegions,
+          pickable: false,
+          stroked: false,
+          filled: true,
+          radiusMinPixels: 0,
+          radiusMaxPixels: 50,
+          // Place the rain just above the extruded region (risk_score * 800)
+          getPosition: (d: RegionImpact) => [d.longitude!, d.latitude!, this.is3D ? (d.risk_score * 800 + 4000) : 50],
+          // Hide regions with < 10mm rain
+          getRadius: (d: RegionImpact) => ((d.rainfall_mm || 0) > 10) ? (d.rainfall_mm || 0) * 150 : 0,
+          getFillColor: (d: RegionImpact) => {
+            const rain = d.rainfall_mm || 0;
+            if (rain <= 10) return [0, 0, 0, 0];
+            const intensity = Math.min(255, rain * 3);
+            return [100, 150, 255, 150 + intensity * 0.4] as [number, number, number, number];
+          },
+          updateTriggers: {
+            getPosition: [this.is3D, this.regionData],
+            getRadius: [this.regionData],
+            getFillColor: [this.regionData]
+          },
+          transitions: {
+            getPosition: 500,
+            getRadius: 500,
+            getFillColor: 500
+          }
         })
       );
     }
@@ -538,7 +580,8 @@ export class FloodSentryMap {
     this.deck?.setProps({ initialViewState: this.viewState });
   }
 
-  // ── Task 8: Pulsing Animation for Critical Infrastructure ─────
+  // Pulsing Animation for Critical Infrastructure
+  // ─────────────────────────────────────────────────────────────
 
   /** Start the continuous pulse animation loop */
   private startPulseAnimation(): void {

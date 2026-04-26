@@ -1,8 +1,8 @@
-"""Flood Risk Classifier — Task 5, Step 2.
+"""Flood Risk Classifier.
 
 XGBoost-based multi-hazard flood probability classifier.
 
-Features (aligned with Task 5 spec)
+Features
 -------------------------------------
 Temporal:
   • month             : 1-12

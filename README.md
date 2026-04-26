@@ -1,4 +1,4 @@
-# 🛡️ FloodSentry: 3D Hydrological Digital Twin for Europe
+# FloodSentry: 3D Hydrological Digital Twin for Europe
 
 > **CASSINI Hackathon — "EU Space for Water" — Challenge #3: Disaster Risk Monitoring**
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
@@ -20,7 +20,7 @@
 
 ---
 
-## 🛰️ EU Space Technologies Used
+## EU Space Technologies Used
 
 ### Copernicus
 - **Sentinel-1** (SAR) — Flood extent mapping through cloud cover
@@ -37,7 +37,7 @@
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────┐     ┌──────────────────────────────┐
@@ -66,42 +66,56 @@
 
 ---
 
-## 💡 What Makes FloodSentry Different from EFAS?
+## What Makes FloodSentry Different from EFAS?
 
 > **EFAS gives a general alert on a river basin. FloodSentry translates that general alert into specific local impact: "Hospital X and School Y in NUTS RO224 will be affected in 4 hours", using a 3D Digital Twin and graph-based risk propagation.**
 
 ---
 
-## 🏃 Quick Start
+## Quick Start
+
+The easiest way to get FloodSentry running on Windows is using the automated scripts.
+
+### 1. Automated Setup
+Run the setup script to check requirements (Python, Node.js), create the virtual environment, install dependencies, and seed the initial database.
+```bash
+./setup_project.bat
+```
+*Note: If Python or Node.js are missing, the script will offer to install them via `winget` automatically.*
+
+### 2. Run the Project
+Once setup is complete, start both the Backend (FastAPI) and Frontend (Vite) services:
+```bash
+./run_project.bat
+```
+- **Digital Twin UI:** http://localhost:5173
+- **API Documentation:** http://127.0.0.1:8001/docs
+
+---
+
+## Manual Setup (Advanced)
+If you prefer to set up the services manually:
 
 ### Backend
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate        # Windows
+venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/seed_data.py  # Populate database with NUTS regions & infrastructure
-uvicorn app.main:app --reload --port 8000
+python scripts/seed_db.py
+uvicorn app.main:app --reload --port 8001
 ```
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-npm run dev                  # Opens at http://localhost:5173
-```
-
-### Environment Variables
-Create `backend/.env`:
-```env
-DATABASE_URL=sqlite:///./floodsentry.db
-OPENMETEO_ENABLED=true
-APP_ENV=development
+npm run dev
 ```
 
 ---
 
-## 🎯 Demo Flow (90 seconds)
+## Demo Flow (90 seconds)
 
 | Time | Action | Talking Point |
 |------|--------|---------------|
@@ -109,12 +123,12 @@ APP_ENV=development
 | 15-30s | Show colored extruded regions | "Our ML model learns from historical Copernicus EMS flood events. Rivers are modeled as graphs. We know what's coming before it arrives." |
 | 30-45s | Click a red zone | "We don't just tell you there's risk. We tell you the IMPACT. Here, 12,000 people and the County Hospital are in danger from rapid snowmelt (Sentinel-3 data)." |
 | 45-65s | Play Simulator (Time-Slider) | "This is our spatio-temporal model. Watch how water from upstream increases risk downstream over 12 hours." |
-| 65-80s | Click Export RO-Alert (XML) | "When risk is confirmed, we auto-generate a CAP XML data package, ready for instant broadcast through government cell broadcast systems (RO-Alert)." |
+| 65-80s | Click Export Emergency Alert (XML) | "When risk is confirmed, we auto-generate a CAP XML data package, ready for instant broadcast through government cell broadcast systems." |
 | 80-90s | Zoom out | "FloodSentry. We go from 'it's raining' to 'evacuate Hospital X in 4 hours'. Thank you." |
 
 ---
 
-## 📋 TAIKAI Submission Checklist
+## TAIKAI Submission Checklist
 
 - [x] **Title:** FloodSentry: 3D Hydrological Digital Twin for Europe
 - [x] **EU Space Tech:** Sentinel-1, Sentinel-2, Sentinel-3 (Snow), DEM (3D twin), EMS (Historical truth), Galileo
@@ -124,12 +138,12 @@ APP_ENV=development
 
 ---
 
-## 👥 Team
+## Team
 
 Built for the **CASSINI Hackathon "EU Space for Water"** — Challenge #3: Disaster Risk Monitoring.
 
 ---
 
-## 📄 License
+## License
 
-MIT License — Built with ❤️ using EU Space data.
+MIT License — Built with using EU Space data.

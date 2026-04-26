@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SENTINEL_HUB_CLIENT_SECRET: str = ""
 
     # Frontend
-    VITE_API_URL: str = "http://localhost:8000"
+    VITE_API_URL: str = "http://localhost:8001"
 
     # CORS
     CORS_ORIGINS: list[str] = [

@@ -1,4 +1,4 @@
-"""Risk Wave Propagator — Task 5, Step 1 (GNN-lite).
+"""Risk Wave Propagator (GNN-lite).
 
 Implements spatial-temporal flood risk propagation on the hydrographic
 graph built by :mod:`app.services.hydro_network`.
@@ -15,8 +15,8 @@ Where:
   • Δt per hop = length_km / flow_speed_kmh  (default 12 km/h)
   • temporal_boost: winter/spring months amplify risk (snowmelt overlay)
 
-Demo scenario (Fallback Plan from Task 5, Step 3)
---------------------------------------------------
+Demo scenario corridor
+----------------------
 Tecuci (RO216) → Liești reach (RO224) → Galați (RO224) → Danube (RO221)
 
 Querying::
@@ -158,7 +158,7 @@ class RiskPropagator:
         scenario corridor.
     flow_speed_kmh:
         Mean river flow speed used to estimate downstream travel times.
-        Default: 12 km/h (typical medium-sized Romanian river).
+        Default: 12 km/h (typical medium-sized European river).
     attenuation:
         Fraction of risk retained per downstream graph hop (0-1).
         Default: 0.80 (20 % decay per reach).
@@ -202,8 +202,7 @@ class RiskPropagator:
             Risk score at the origin node (0-100).
         rainfall_override_mm:
             If provided, boosts initial_risk by up to 20 % for extreme
-            rainfall events (>100 mm).  Simulates the demo slider from
-            Task 5, Step 3.
+            rainfall events (>100 mm). Simulates heavy rainfall impact.
         month:
             Calendar month (1-12).  Defaults to current UTC month.
             Used to apply seasonal snowmelt amplification.

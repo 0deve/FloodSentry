@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 EMERGENCY_RISK_THRESHOLD = 75.0
 EMERGENCY_POP_THRESHOLD = 5000
 CRITICAL_THRESHOLD = 60.0
-WARNING_THRESHOLD = 30.0
+WARNING_THRESHOLD = 1.0
 
 
 def _determine_severity(
@@ -41,7 +41,7 @@ def _determine_severity(
 ) -> str:
     """Determine alert severity from risk score + impact metrics.
 
-    Follows the Task 7 specification:
+    Severity escalation:
     - Risk > 75 AND impact > 5000 people → EMERGENCY
     - Risk >= 60 → CRITICAL
     - Risk >= 30 → WARNING
@@ -66,17 +66,17 @@ def _build_alert_title(
 ) -> str:
     """Build a human-readable alert title."""
     hazard_labels = {
-        "fluvial": "Inundație fluvială",
-        "pluvial": "Inundație pluvială (Flash Flood)",
-        "snowmelt": "Inundație din topirea zăpezii",
+        "fluvial": "River Flood",
+        "pluvial": "Flash Flood (Pluvial)",
+        "snowmelt": "Snowmelt Flood",
     }
     severity_labels = {
-        "emergency": "URGENȚĂ MAXIMĂ",
-        "critical": "RISC CRITIC",
-        "warning": "AVERTIZARE",
-        "info": "INFORMARE",
+        "emergency": "MAXIMUM EMERGENCY",
+        "critical": "CRITICAL RISK",
+        "warning": "WARNING",
+        "info": "INFORMATION",
     }
-    hazard = hazard_labels.get(hazard_type, hazard_type)
+    hazard = hazard_labels.get(hazard_type, hazard_type.capitalize())
     level = severity_labels.get(severity, severity.upper())
     return f"[{level}] {hazard} — {region_name}"
 
@@ -92,15 +92,20 @@ def _build_alert_description(
     """Build a detailed alert description with impact analysis."""
     parts = []
 
+    hazard_desc = {
+        "fluvial": "river flood",
+        "pluvial": "pluvial (flash flood)",
+        "snowmelt": "snowmelt flood",
+    }.get(hazard_type, hazard_type)
+
     parts.append(
-        f"Risc de inundație de tip {'fluvial (râuri)' if hazard_type == 'fluvial' else 'pluvial (ploi torențiale)' if hazard_type == 'pluvial' else 'topire zăpadă'} "
-        f"în regiunea {region_name} ({nuts_id}). "
-        f"Scor de risc: {risk_score:.1f}/100."
+        f"Risk of {hazard_desc} in the {region_name} region ({nuts_id}). "
+        f"Risk score: {risk_score:.1f}/100."
     )
 
     if affected_population > 0:
         parts.append(
-            f"Populație estimată afectată: {affected_population:,} persoane."
+            f"Estimated affected population: {affected_population:,} people."
         )
 
     if infrastructure:
@@ -111,21 +116,21 @@ def _build_alert_description(
         infra_parts = []
         for itype, names in by_type.items():
             type_label = {
-                "hospital": "spitale",
-                "school": "școli",
-                "power_station": "stații de transformare",
-                "road": "drumuri principale",
+                "hospital": "hospitals",
+                "school": "schools",
+                "power_station": "power stations",
+                "road": "main roads",
             }.get(itype, itype)
             infra_parts.append(
                 f"{len(names)} {type_label} ({', '.join(names[:3])}{'…' if len(names) > 3 else ''})"
             )
         parts.append(
-            "Infrastructură critică la risc: " + "; ".join(infra_parts) + "."
+            "Critical infrastructure at risk: " + "; ".join(infra_parts) + "."
         )
 
     if risk_score >= EMERGENCY_RISK_THRESHOLD:
         parts.append(
-            "Se recomandă evacuarea imediată a zonelor din lunca inundabilă."
+            "Immediate evacuation of floodplain areas is recommended."
         )
 
     return " ".join(parts)

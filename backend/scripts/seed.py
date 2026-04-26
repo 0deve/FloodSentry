@@ -35,7 +35,7 @@ def seed():
         locations = [
             Location(
                 nuts_id="RO224",
-                name="Județul Galați",
+                name="Galati",
                 level=3,
                 population=490000,
                 latitude=45.44,
@@ -43,7 +43,7 @@ def seed():
             ),
             Location(
                 nuts_id="RO225",
-                name="Județul Vrancea",
+                name="Vrancea",
                 level=3,
                 population=320000,
                 latitude=45.70,
@@ -51,7 +51,7 @@ def seed():
             ),
             Location(
                 nuts_id="RO211",
-                name="Județul Bacău",
+                name="Bacau",
                 level=3,
                 population=580000,
                 latitude=46.57,
@@ -59,7 +59,7 @@ def seed():
             ),
             Location(
                 nuts_id="RO226",
-                name="Județul Vaslui",
+                name="Vaslui",
                 level=3,
                 population=380000,
                 latitude=46.64,
@@ -87,61 +87,61 @@ def seed():
 
         # ─── CRITICAL INFRASTRUCTURE ─────────────────────────────────
         infrastructure = [
-            # Galați
+            # Galati
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="hospital",
-                name="Spitalul Județean de Urgență Sf. Apostol Andrei",
+                name="Galati County Emergency Hospital",
                 latitude=45.4388,
                 longitude=28.0458,
             ),
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="hospital",
-                name="Spitalul de Pneumoftiziologie Galați",
+                name="Galati Pulmonology Hospital",
                 latitude=45.4412,
                 longitude=28.0523,
             ),
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="school",
-                name="Școala Gimnazială Nr. 12",
+                name="Primary School No. 12",
                 latitude=45.4350,
                 longitude=28.0400,
             ),
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="school",
-                name="Liceul Teoretic Dunărea",
+                name="Dunarea High School",
                 latitude=45.4420,
                 longitude=28.0380,
             ),
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="school",
-                name="Colegiul Național Vasile Alecsandri",
+                name="Vasile Alecsandri National College",
                 latitude=45.4395,
                 longitude=28.0510,
             ),
             CriticalInfrastructure(
                 nuts_id="RO224",
                 type="power_station",
-                name="Stația de Transformare Barboși",
+                name="Barbosi Power Station",
                 latitude=45.4600,
                 longitude=28.0200,
             ),
-            # Bacău
+            # Bacau
             CriticalInfrastructure(
                 nuts_id="RO211",
                 type="hospital",
-                name="Spitalul Județean de Urgență Bacău",
+                name="Bacau County Emergency Hospital",
                 latitude=46.5670,
                 longitude=26.9130,
             ),
             CriticalInfrastructure(
                 nuts_id="RO211",
                 type="school",
-                name="Colegiul Național Ferdinand I Bacău",
+                name="Ferdinand I National College Bacau",
                 latitude=46.5680,
                 longitude=26.9090,
             ),
@@ -149,7 +149,7 @@ def seed():
             CriticalInfrastructure(
                 nuts_id="RO225",
                 type="hospital",
-                name="Spitalul Județean de Urgență Focșani",
+                name="Focsani County Emergency Hospital",
                 latitude=45.6960,
                 longitude=27.1850,
             ),
@@ -244,32 +244,32 @@ def seed():
                 nuts_id="RO224",
                 prediction_id=None,  # Will link after commit
                 level="emergency",
-                title="Risc Critic de Inundație — Galați (Dunăre/Siret)",
+                title="Critical Flood Risk — Galati (Danube/Siret)",
                 description=(
-                    "Risc Critic în RO224 (Galați). Nivel de risc: 91.2. "
-                    "Infrastructură la risc: Spitalul Județean Sf. Apostol Andrei, "
-                    "3 școli, Stația de Transformare Barboși. "
-                    "Populație afectată estimată: 12.000."
+                    "Critical Risk in RO224 (Galati). Risk level: 91.2. "
+                    "Infrastructure at risk: Galati County Emergency Hospital, "
+                    "3 schools, Barbosi Power Station. "
+                    "Estimated affected population: 12,000."
                 ),
                 is_active=True,
             ),
             Alert(
                 nuts_id="RO211",
                 level="critical",
-                title="Avertizare Pluvială — Bacău",
+                title="Pluvial Warning — Bacau",
                 description=(
-                    "Risc ridicat de flash-flood în RO211 (Bacău). "
-                    "Nivel de risc: 67.5. Precipitații intense prognozate."
+                    "High flash-flood risk in RO211 (Bacau). "
+                    "Risk level: 67.5. Intense rainfall forecasted."
                 ),
                 is_active=True,
             ),
             Alert(
                 nuts_id="HU333",
                 level="critical",
-                title="Figyelmeztetés — Csongrád-Csanád (Tisza)",
+                title="Fluvial Warning — Csongrad-Csanad (Tisza)",
                 description=(
-                    "Risc ridicat fluvial în HU333 (Csongrád-Csanád). "
-                    "Debit crescut pe Tisza. Nivel de risc: 72.3."
+                    "High fluvial risk in HU333 (Csongrad-Csanad). "
+                    "Increased discharge on the Tisza. Risk level: 72.3."
                 ),
                 is_active=True,
             ),

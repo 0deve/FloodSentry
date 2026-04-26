@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/floodsentrylogowhite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FloodSentry — EU Flood Risk Digital Twin</title>
     <meta name="description" content="Pan-European real-time flood risk monitoring using Copernicus satellite data. Impact-based forecasting for NUTS-3 regions." />
@@ -16,9 +16,8 @@
       <header id="topbar">
         <div id="topbar-left">
           <div id="logo">
-            <span class="logo-icon">🛡️</span>
+            <img src="/floodsentrylogowhite.svg" alt="FloodSentry Icon" class="logo-icon-img" />
             <span class="logo-text">Flood<strong>Sentry</strong></span>
-            <span class="logo-badge">EU DIGITAL TWIN</span>
           </div>
         </div>
         <div id="topbar-center">
@@ -127,7 +126,7 @@
                 </div>
               </div>
 
-              <!-- Task 6: Impact Narrative -->
+              <!-- Impact Narrative -->
               <div id="detail-narrative-section">
                 <h3 class="section-title">Impact Narrative</h3>
                 <div id="detail-narrative"></div>
@@ -141,22 +140,22 @@
                 <p id="detail-summary-text"></p>
               </div>
 
-              <!-- Task 7: Export Actions -->
+              <!-- Export Actions -->
               <div id="detail-actions">
                 <h3 class="section-title">Export & Actions</h3>
                 <div id="action-buttons">
-                  <button id="btn-cap-xml" class="action-btn cap-btn" title="Download CAP XML for RO-Alert">
+                  <button id="btn-cap-xml" class="action-btn cap-btn" title="Download CAP XML for Emergency Alerts">
                     <span class="action-icon">📡</span>
                     <div class="action-text">
-                      <span class="action-label">RO-Alert XML</span>
-                      <span class="action-desc">Transmite către RO-Alert (CAP)</span>
+                      <span class="action-label">Emergency XML</span>
+                      <span class="action-desc">Send to Alert System (CAP)</span>
                     </div>
                   </button>
                   <button id="btn-pdf-report" class="action-btn pdf-btn" title="Generate Executive PDF Report">
                     <span class="action-icon">📄</span>
                     <div class="action-text">
-                      <span class="action-label">Raport PDF</span>
-                      <span class="action-desc">Raport executiv pentru primari</span>
+                      <span class="action-label">PDF Report</span>
+                      <span class="action-desc">Executive report for authorities</span>
                     </div>
                   </button>
                 </div>
@@ -197,13 +196,14 @@
           </div>
           <!-- Loading overlay -->
           <div id="map-loading">
+            <img src="/floodsentrywhite.svg" alt="FloodSentry" class="loading-logo" />
             <div class="loading-spinner"></div>
-            <p>Loading Digital Twin…</p>
+            <p>Loading Digital Twin...</p>
           </div>
           <!-- Tooltip -->
           <div id="map-tooltip"></div>
 
-          <!-- Task 8: EU Space Data Watermark (Demo branding) -->
+          <!-- EU Space Data Watermark (Demo branding) -->
           <div id="eu-watermark">
             <span class="wm-icon">🛰️</span>
             <span class="wm-label">Copernicus</span>
@@ -214,7 +214,7 @@
             <span class="wm-label">Galileo</span>
           </div>
 
-          <!-- Task 7: Hydrologic Simulator Panel -->
+          <!-- Hydrologic Simulator Panel -->
           <div id="simulator-panel" class="hidden">
             <div id="sim-header">
               <div id="sim-title-row">
@@ -234,6 +234,13 @@
                 <label for="sim-rainfall">🌧️ Rainfall (mm):</label>
                 <input type="range" id="sim-rainfall" min="0" max="400" value="150" step="10" />
                 <span id="sim-rain-value">150mm</span>
+              </div>
+              <div id="sim-type-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 0 16px;">
+                <label for="sim-storm-type" style="color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; min-width: max-content;">🌪️ Storm Type:</label>
+                <select id="sim-storm-type" style="background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; flex-grow: 1; outline: none; cursor: pointer;">
+                  <option value="front">Atmospheric Front (West → East)</option>
+                  <option value="clusters">Local Storms (Clusters)</option>
+                </select>
               </div>
             </div>
             <div id="sim-regions">

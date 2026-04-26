@@ -10,9 +10,12 @@ _GEOJSON_PATH = os.path.join(
 )
 
 # A set of regions that we want to prioritize for the "Bad Weather" demo
+# We include historically flood-prone regions: Emilia-Romagna (ITH5), Valencia (ES52),
+# Thessaly (EL61), Liege (BE33), Ahrweiler/Koblenz (DEB1), Veneto (ITH3)
 DEMO_TARGETS = {
     "RO224", "RO221", "RO216", "RO121", "RO213", "RO321", "FR101", "DEA23", "ITC4C", "AT130", "CZ010", "HU110",
-    "ES511", "NL226", "NL341", "BG311", "EL301"
+    "ES511", "NL226", "NL341", "BG311", "EL301",
+    "ITH5", "ES52", "EL61", "BE33", "DEB1", "ITH3"
 }
 
 def load_all_regions():
@@ -69,22 +72,24 @@ def load_all_regions():
                 "bbox": (min_lon, min_lat, max_lon, max_lat)
             })
             
-            # Generate fake infrastructure for important demo regions
-            if nuts_id in DEMO_TARGETS:
+            # Generate fake infrastructure for most regions (70% chance), but guarantee it for DEMO_TARGETS
+            if nuts_id in DEMO_TARGETS or random.random() > 0.3:
                 INFRASTRUCTURE.append({
                     "nuts_id": nuts_id,
                     "type": "hospital",
-                    "name": f"Spitalul {name}",
+                    "name": f"Hospital {name}",
                     "latitude": center_lat + random.uniform(-0.01, 0.01),
                     "longitude": center_lon + random.uniform(-0.01, 0.01)
                 })
-                INFRASTRUCTURE.append({
-                    "nuts_id": nuts_id,
-                    "type": "school",
-                    "name": f"Liceul {name}",
-                    "latitude": center_lat + random.uniform(-0.01, 0.01),
-                    "longitude": center_lon + random.uniform(-0.01, 0.01)
-                })
+                # 50% chance to also have a school
+                if random.random() > 0.5:
+                    INFRASTRUCTURE.append({
+                        "nuts_id": nuts_id,
+                        "type": "school",
+                        "name": f"High School {name}",
+                        "latitude": center_lat + random.uniform(-0.01, 0.01),
+                        "longitude": center_lon + random.uniform(-0.01, 0.01)
+                    })
 
     except Exception as e:
         print(f"Error loading eu regions: {e}")

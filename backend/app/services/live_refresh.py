@@ -116,8 +116,9 @@ async def refresh_predictions(
                     source = bundle.ndwi.source
                 else:
                     # Fast simulation path — zero network calls
-                    rainfall_24h = 0.0
-                    soil_moisture = 0.2
+                    pseudo_noise = (region["latitude"] + region["longitude"]) % 10.0
+                    rainfall_24h = pseudo_noise * 1.5
+                    soil_moisture = 0.2 + (pseudo_noise / 50.0)
                     snow_cover = 0.0
                     temp_trend = 0.0
                     current_temp = round(

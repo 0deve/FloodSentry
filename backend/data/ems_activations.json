@@ -28,5 +28,475 @@
     "hazard_type": "snowmelt",
     "is_flooded": 1,
     "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR262"
+  },
+  {
+    "activation_code": "EMSR517",
+    "title": "Floods in Western Germany (Ahrtal)",
+    "nuts_ids": ["DEA23"],
+    "event_start": "2021-07-13",
+    "event_end": "2021-07-20",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR517"
+  },
+  {
+    "activation_code": "EMSR518",
+    "title": "Floods in Wallonia",
+    "nuts_ids": ["BE331"],
+    "event_start": "2021-07-14",
+    "event_end": "2021-07-21",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR518"
+  },
+  {
+    "activation_code": "EMSR664",
+    "title": "Floods in Emilia-Romagna",
+    "nuts_ids": ["ITH5"],
+    "event_start": "2023-05-15",
+    "event_end": "2023-05-30",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR664"
+  },
+  {
+    "activation_code": "EMSR692",
+    "title": "Floods in Thessaly (Storm Daniel)",
+    "nuts_ids": ["EL611"],
+    "event_start": "2023-09-04",
+    "event_end": "2023-09-12",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR692"
+  },
+  {
+    "activation_code": "EMSR310",
+    "title": "Floods in Veneto",
+    "nuts_ids": ["ITH3"],
+    "event_start": "2018-10-29",
+    "event_end": "2018-11-05",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR310"
+  },
+  {
+    "activation_code": "EMSR678",
+    "title": "Floods in Slovenia",
+    "nuts_ids": ["SI03", "SI04"],
+    "event_start": "2023-08-04",
+    "event_end": "2023-08-10",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR678"
+  },
+  {
+    "activation_code": "EMSR684",
+    "title": "Floods in Spain",
+    "nuts_ids": ["ES523", "ES521"],
+    "event_start": "2023-09-02",
+    "event_end": "2023-09-08",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR684"
+  },
+  {
+    "activation_code": "EMSR297",
+    "title": "Floods in Grand-Est",
+    "nuts_ids": ["FRF"],
+    "event_start": "2018-05-20",
+    "event_end": "2018-05-28",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR297"
+  },
+  {
+    "activation_code": "EMSR422",
+    "title": "Floods in Hauts-de-France",
+    "nuts_ids": ["FRE2"],
+    "event_start": "2020-02-15",
+    "event_end": "2020-02-25",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR422"
+  },
+  {
+    "activation_code": "EMSR193",
+    "title": "Floods in Andalusia",
+    "nuts_ids": ["ES618"],
+    "event_start": "2016-12-04",
+    "event_end": "2016-12-10",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR193"
+  },
+  {
+    "activation_code": "EMSR376",
+    "title": "Floods in Catalonia",
+    "nuts_ids": ["ES51"],
+    "event_start": "2019-10-22",
+    "event_end": "2019-10-28",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR376"
+  },
+  {
+    "activation_code": "EMSR525",
+    "title": "Floods in Austria",
+    "nuts_ids": ["AT12", "AT31"],
+    "event_start": "2021-07-17",
+    "event_end": "2021-07-22",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR525"
+  },
+  {
+    "activation_code": "EMSR150",
+    "title": "Floods in UK (Yorkshire)",
+    "nuts_ids": ["UKE2"],
+    "event_start": "2015-12-26",
+    "event_end": "2016-01-05",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR150"
+  },
+  {
+    "activation_code": "EMSR267",
+    "title": "Floods in Portugal",
+    "nuts_ids": ["PT111"],
+    "event_start": "2018-03-01",
+    "event_end": "2018-03-06",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR267"
+  },
+  {
+    "activation_code": "EMSR701",
+    "title": "Floods in Pas-de-Calais",
+    "nuts_ids": ["FRE12"],
+    "event_start": "2023-11-06",
+    "event_end": "2023-11-20",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR701"
+  },
+  {
+    "activation_code": "EMSR340",
+    "title": "Floods in Czech Republic",
+    "nuts_ids": ["CZ042"],
+    "event_start": "2019-01-14",
+    "event_end": "2019-01-20",
+    "hazard_type": "snowmelt",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR340"
+  },
+  {
+    "activation_code": "EMSR550",
+    "title": "Floods in Bulgaria",
+    "nuts_ids": ["BG412"],
+    "event_start": "2021-12-11",
+    "event_end": "2021-12-16",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR550"
+  },
+  {
+    "activation_code": "EMSR580",
+    "title": "Floods in Lesser Poland",
+    "nuts_ids": ["PL21"],
+    "event_start": "2022-05-10",
+    "event_end": "2022-05-18",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR580"
+  },
+  {
+    "activation_code": "EMSR585",
+    "title": "Floods in Central Hungary",
+    "nuts_ids": ["HU11", "HU12"],
+    "event_start": "2022-06-05",
+    "event_end": "2022-06-12",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR585"
+  },
+  {
+    "activation_code": "EMSR544",
+    "title": "Floods in Sicily",
+    "nuts_ids": ["ITG1"],
+    "event_start": "2021-10-25",
+    "event_end": "2021-11-02",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR544"
+  },
+  {
+    "activation_code": "EMSR546",
+    "title": "Floods in Sardinia",
+    "nuts_ids": ["ITG2"],
+    "event_start": "2021-11-15",
+    "event_end": "2021-11-20",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR546"
+  },
+  {
+    "activation_code": "EMSR490",
+    "title": "Floods in Lot-et-Garonne",
+    "nuts_ids": ["FRI14"],
+    "event_start": "2021-02-01",
+    "event_end": "2021-02-08",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR490"
+  },
+  {
+    "activation_code": "EMSR472",
+    "title": "Floods in Alpes-Maritimes",
+    "nuts_ids": ["FRL03"],
+    "event_start": "2020-10-02",
+    "event_end": "2020-10-10",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR472"
+  },
+  {
+    "activation_code": "EMSR468",
+    "title": "Floods in Piedmont",
+    "nuts_ids": ["ITC1"],
+    "event_start": "2020-10-02",
+    "event_end": "2020-10-09",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR468"
+  },
+  {
+    "activation_code": "EMSR440",
+    "title": "Floods in Evia",
+    "nuts_ids": ["EL62B"],
+    "event_start": "2020-08-09",
+    "event_end": "2020-08-15",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR440"
+  },
+  {
+    "activation_code": "EMSR429",
+    "title": "Floods in Crete",
+    "nuts_ids": ["EL43"],
+    "event_start": "2020-02-25",
+    "event_end": "2020-03-02",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR429"
+  },
+  {
+    "activation_code": "EMSR414",
+    "title": "Floods in Gironde",
+    "nuts_ids": ["FRI12"],
+    "event_start": "2019-12-13",
+    "event_end": "2019-12-20",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR414"
+  },
+  {
+    "activation_code": "EMSR400",
+    "title": "Floods in Alicante",
+    "nuts_ids": ["ES521"],
+    "event_start": "2019-09-12",
+    "event_end": "2019-09-18",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR400"
+  },
+  {
+    "activation_code": "EMSR385",
+    "title": "Floods in Murcia",
+    "nuts_ids": ["ES62"],
+    "event_start": "2019-09-11",
+    "event_end": "2019-09-16",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR385"
+  },
+  {
+    "activation_code": "EMSR374",
+    "title": "Floods in South Yorkshire",
+    "nuts_ids": ["UKE3"],
+    "event_start": "2019-11-07",
+    "event_end": "2019-11-15",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR374"
+  },
+  {
+    "activation_code": "EMSR360",
+    "title": "Floods in Attica",
+    "nuts_ids": ["EL30"],
+    "event_start": "2019-06-05",
+    "event_end": "2019-06-10",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR360"
+  },
+  {
+    "activation_code": "EMSR342",
+    "title": "Floods in Azores",
+    "nuts_ids": ["PT20"],
+    "event_start": "2019-03-01",
+    "event_end": "2019-03-05",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR342"
+  },
+  {
+    "activation_code": "EMSR325",
+    "title": "Floods in Aude",
+    "nuts_ids": ["FRJ11"],
+    "event_start": "2018-10-15",
+    "event_end": "2018-10-22",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR325"
+  },
+  {
+    "activation_code": "EMSR322",
+    "title": "Floods in Mallorca",
+    "nuts_ids": ["ES531"],
+    "event_start": "2018-10-09",
+    "event_end": "2018-10-14",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR322"
+  },
+  {
+    "activation_code": "EMSR298",
+    "title": "Floods in Corsica",
+    "nuts_ids": ["FRM0"],
+    "event_start": "2018-06-11",
+    "event_end": "2018-06-16",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR298"
+  },
+  {
+    "activation_code": "EMSR280",
+    "title": "Floods in Bavaria",
+    "nuts_ids": ["DE2"],
+    "event_start": "2018-05-15",
+    "event_end": "2018-05-20",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR280"
+  },
+  {
+    "activation_code": "EMSR275",
+    "title": "Floods in Tyrol",
+    "nuts_ids": ["AT33"],
+    "event_start": "2018-04-10",
+    "event_end": "2018-04-15",
+    "hazard_type": "snowmelt",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR275"
+  },
+  {
+    "activation_code": "EMSR250",
+    "title": "Floods in Oulu",
+    "nuts_ids": ["FI1D"],
+    "event_start": "2017-09-12",
+    "event_end": "2017-09-18",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR250"
+  },
+  {
+    "activation_code": "EMSR245",
+    "title": "Floods in Norrbotten",
+    "nuts_ids": ["SE332"],
+    "event_start": "2017-08-01",
+    "event_end": "2017-08-08",
+    "hazard_type": "snowmelt",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR245"
+  },
+  {
+    "activation_code": "EMSR210",
+    "title": "Floods in Jutland",
+    "nuts_ids": ["DK04"],
+    "event_start": "2016-12-15",
+    "event_end": "2016-12-20",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR210"
+  },
+  {
+    "activation_code": "EMSR180",
+    "title": "Floods in Lower Saxony",
+    "nuts_ids": ["DE9"],
+    "event_start": "2016-06-23",
+    "event_end": "2016-06-30",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR180"
+  },
+  {
+    "activation_code": "EMSR175",
+    "title": "Floods in Seine-et-Marne",
+    "nuts_ids": ["FR102"],
+    "event_start": "2016-05-28",
+    "event_end": "2016-06-05",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR175"
+  },
+  {
+    "activation_code": "EMSR140",
+    "title": "Floods in Cumbria",
+    "nuts_ids": ["UKD1"],
+    "event_start": "2015-12-04",
+    "event_end": "2015-12-14",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR140"
+  },
+  {
+    "activation_code": "EMSR135",
+    "title": "Floods in Galway",
+    "nuts_ids": ["IE042"],
+    "event_start": "2015-11-15",
+    "event_end": "2015-11-22",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR135"
+  },
+  {
+    "activation_code": "EMSR120",
+    "title": "Floods in Varna",
+    "nuts_ids": ["BG331"],
+    "event_start": "2014-06-19",
+    "event_end": "2014-06-25",
+    "hazard_type": "pluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR120"
+  },
+  {
+    "activation_code": "EMSR115",
+    "title": "Floods in Croatia",
+    "nuts_ids": ["HR04"],
+    "event_start": "2014-05-14",
+    "event_end": "2014-05-24",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR115"
+  },
+  {
+    "activation_code": "EMSR105",
+    "title": "Floods in Somerset",
+    "nuts_ids": ["UKK23"],
+    "event_start": "2014-01-20",
+    "event_end": "2014-02-15",
+    "hazard_type": "fluvial",
+    "is_flooded": 1,
+    "source_url": "https://emergency.copernicus.eu/mapping/ems-rapid-mapping-activation/EMSR105"
   }
 ]

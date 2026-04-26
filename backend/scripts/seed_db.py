@@ -16,35 +16,37 @@ from app.models.infrastructure import CriticalInfrastructure
 from app.models.prediction import FloodPrediction
 from app.ml.flood_classifier import FloodClassifier, FloodFeatures
 
-# ── 1. NUTS-3 Regions (Romania + neighbours) ─────────────────────────────────
+# ── 1. NUTS-3 Regions (European Demo Set) ─────────────────────────────────
 
 NUTS_REGIONS = [
-    # --- Romania NUTS-3 counties ---
-    {"nuts_id": "RO224", "name": "Galați",         "level": 3, "population": 250000,  "latitude": 45.44, "longitude": 28.03},
+    # --- European regions ---
+    {"nuts_id": "RO224", "name": "Galati",         "level": 3, "population": 250000,  "latitude": 45.44, "longitude": 28.03},
     {"nuts_id": "RO225", "name": "Tulcea",         "level": 3, "population": 213000,  "latitude": 45.18, "longitude": 28.80},
-    {"nuts_id": "RO221", "name": "Brăila",         "level": 3, "population": 210000,  "latitude": 45.27, "longitude": 27.96},
-    {"nuts_id": "RO223", "name": "Constanța",      "level": 3, "population": 684000,  "latitude": 44.17, "longitude": 28.63},
-    {"nuts_id": "RO213", "name": "Iași",           "level": 3, "population": 855000,  "latitude": 47.15, "longitude": 27.59},
-    {"nuts_id": "RO211", "name": "Bacău",          "level": 3, "population": 616000,  "latitude": 46.56, "longitude": 26.92},
+    {"nuts_id": "RO221", "name": "Braila",         "level": 3, "population": 210000,  "latitude": 45.27, "longitude": 27.96},
+    {"nuts_id": "RO223", "name": "Constanta",      "level": 3, "population": 684000,  "latitude": 44.17, "longitude": 28.63},
+    {"nuts_id": "RO213", "name": "Iasi",           "level": 3, "population": 855000,  "latitude": 47.15, "longitude": 27.59},
+    {"nuts_id": "RO211", "name": "Bacau",          "level": 3, "population": 616000,  "latitude": 46.56, "longitude": 26.92},
     {"nuts_id": "RO216", "name": "Vaslui",         "level": 3, "population": 395000,  "latitude": 46.63, "longitude": 27.73},
-    {"nuts_id": "RO214", "name": "Neamț",          "level": 3, "population": 470000,  "latitude": 46.97, "longitude": 26.38},
-    {"nuts_id": "RO121", "name": "Brașov",         "level": 3, "population": 596000,  "latitude": 45.65, "longitude": 25.61},
+    {"nuts_id": "RO214", "name": "Neamt",          "level": 3, "population": 470000,  "latitude": 46.97, "longitude": 26.38},
+    {"nuts_id": "RO121", "name": "Brasov",         "level": 3, "population": 596000,  "latitude": 45.65, "longitude": 25.61},
     {"nuts_id": "RO122", "name": "Covasna",        "level": 3, "population": 210000,  "latitude": 45.85, "longitude": 26.18},
-    {"nuts_id": "RO424", "name": "Timiș",          "level": 3, "population": 697000,  "latitude": 45.74, "longitude": 21.23},
-    {"nuts_id": "RO312", "name": "Dâmbovița",      "level": 3, "population": 518000,  "latitude": 44.92, "longitude": 25.45},
+    {"nuts_id": "RO424", "name": "Timis",          "level": 3, "population": 697000,  "latitude": 45.74, "longitude": 21.23},
+    {"nuts_id": "RO312", "name": "Dambovita",      "level": 3, "population": 518000,  "latitude": 44.92, "longitude": 25.45},
     {"nuts_id": "RO315", "name": "Prahova",        "level": 3, "population": 762000,  "latitude": 45.03, "longitude": 26.02},
-    {"nuts_id": "RO321", "name": "București",      "level": 3, "population": 2100000, "latitude": 44.43, "longitude": 26.10},
-    {"nuts_id": "RO311", "name": "Argeș",          "level": 3, "population": 612000,  "latitude": 44.85, "longitude": 24.87},
-    {"nuts_id": "RO414", "name": "Mehedinți",      "level": 3, "population": 265000,  "latitude": 44.63, "longitude": 22.65},
+    {"nuts_id": "RO321", "name": "Bucharest",      "level": 3, "population": 2100000, "latitude": 44.43, "longitude": 26.10},
+    {"nuts_id": "RO311", "name": "Arges",          "level": 3, "population": 612000,  "latitude": 44.85, "longitude": 24.87},
+    {"nuts_id": "RO414", "name": "Mehedinti",      "level": 3, "population": 265000,  "latitude": 44.63, "longitude": 22.65},
     {"nuts_id": "RO411", "name": "Dolj",           "level": 3, "population": 662000,  "latitude": 44.32, "longitude": 23.80},
     {"nuts_id": "RO421", "name": "Arad",           "level": 3, "population": 430000,  "latitude": 46.17, "longitude": 21.32},
-    {"nuts_id": "RO422", "name": "Caraș-Severin",  "level": 3, "population": 295000,  "latitude": 45.30, "longitude": 22.07},
+    {"nuts_id": "RO422", "name": "Caras-Severin",  "level": 3, "population": 295000,  "latitude": 45.30, "longitude": 22.07},
     {"nuts_id": "RO423", "name": "Hunedoara",      "level": 3, "population": 419000,  "latitude": 45.72, "longitude": 22.91},
     {"nuts_id": "RO112", "name": "Cluj",           "level": 3, "population": 729000,  "latitude": 46.77, "longitude": 23.60},
-    {"nuts_id": "RO113", "name": "Mureș",          "level": 3, "population": 550000,  "latitude": 46.54, "longitude": 24.56},
-    {"nuts_id": "RO212", "name": "Botoșani",       "level": 3, "population": 412000,  "latitude": 47.74, "longitude": 26.67},
+    {"nuts_id": "RO113", "name": "Mures",          "level": 3, "population": 550000,  "latitude": 46.54, "longitude": 24.56},
+    {"nuts_id": "RO212", "name": "Botosani",       "level": 3, "population": 412000,  "latitude": 47.74, "longitude": 26.67},
     {"nuts_id": "RO215", "name": "Suceava",        "level": 3, "population": 688000,  "latitude": 47.65, "longitude": 26.25},
-    {"nuts_id": "RO222", "name": "Buzău",          "level": 3, "population": 453000,  "latitude": 45.15, "longitude": 26.82},
+    {"nuts_id": "RO222", "name": "Buzau",          "level": 3, "population": 453000,  "latitude": 45.15, "longitude": 26.82},
+    {"nuts_id": "DEA23", "name": "Cologne",        "level": 3, "population": 1080000, "latitude": 50.93, "longitude": 6.95},
+    {"nuts_id": "ITH55", "name": "Bologna",        "level": 3, "population": 1010000, "latitude": 44.49, "longitude": 11.34},
 ]
 
 # ── 2. Feature vectors for ML predictions ────────────────────────────────────
@@ -64,55 +66,46 @@ REGION_FEATURES = {
     "RO312": (0.40, 0.05,  0.00,  10.0,  0.2, 180.0, 4.0,  3.0),   # Dambovita - LOW
     "RO315": (0.38, 0.03,  0.00,   8.0,  0.1, 220.0, 5.0,  2.0),   # Prahova - LOW
     "RO321": (0.42, 0.06,  0.00,  18.0,  0.8, 70.0,  1.0,  8.0),   # Bucuresti - LOW
-    "RO311": (0.35, 0.02,  0.00,   5.0, -0.5, 380.0, 6.0,  1.0),   # Arges - LOW
-    "RO414": (0.60, 0.15,  0.00,  45.0,  1.2, 120.0, 3.5, 30.0),   # Mehedinti - warning
-    "RO411": (0.55, 0.12,  0.00,  30.0,  0.8, 90.0,  2.0, 20.0),   # Dolj - info
-    "RO421": (0.48, 0.09,  0.00,  25.0,  0.6, 110.0, 2.5, 10.0),   # Arad - LOW
-    "RO422": (0.52, 0.11,  0.30,  35.0,  4.0, 450.0, 7.0,  8.0),   # Caras-Severin - warning
-    "RO423": (0.50, 0.10,  0.25,  28.0,  3.5, 400.0, 6.5,  5.0),   # Hunedoara - LOW
-    "RO112": (0.42, 0.07,  0.10,  15.0,  1.0, 350.0, 4.5,  3.0),   # Cluj - LOW
-    "RO113": (0.44, 0.08,  0.12,  18.0,  1.2, 320.0, 4.2,  4.0),   # Mures - LOW
-    "RO212": (0.62, 0.16,  0.00,  55.0,  0.9, 150.0, 2.8, 15.0),   # Botosani - warning
-    "RO215": (0.58, 0.13,  0.05,  45.0,  0.7, 280.0, 3.8, 10.0),   # Suceava - LOW
-    "RO222": (0.65, 0.18,  0.00,  60.0,  1.3, 100.0, 2.5, 22.0),   # Buzau - warning
-    "RO214": (0.60, 0.14,  0.08,  50.0,  1.1, 200.0, 5.0, 12.0),   # Neamt - warning
+    "DEA23": (0.75, 0.30,  0.00,  80.0,  2.0, 40.0,  1.5, 60.0),   # Cologne - moderate risk
+    "ITH55": (0.82, 0.35,  0.00,  90.0,  2.5, 50.0,  2.0, 65.0),   # Bologna - high fluvial
 }
 
 # ── 3. Infrastructure ─────────────────────────────────────────────────────────
 
 INFRASTRUCTURE = [
     # Galati (very at risk)
-    {"nuts_id": "RO224", "type": "hospital",   "name": "Spitalul Județean Galați",       "latitude": 45.44, "longitude": 28.03},
-    {"nuts_id": "RO224", "type": "hospital",   "name": "Spitalul Municipal Galați",      "latitude": 45.46, "longitude": 28.05},
-    {"nuts_id": "RO224", "type": "school",     "name": "Școala Nr. 11 Galați",           "latitude": 45.43, "longitude": 28.02},
-    {"nuts_id": "RO224", "type": "school",     "name": "Colegiul Vasile Alecsandri",     "latitude": 45.44, "longitude": 28.04},
-    {"nuts_id": "RO224", "type": "powerplant", "name": "Stație Electrică Galați Sud",   "latitude": 45.42, "longitude": 28.01},
+    {"nuts_id": "RO224", "type": "hospital",   "name": "Galati County Hospital",       "latitude": 45.44, "longitude": 28.03},
+    {"nuts_id": "RO224", "type": "hospital",   "name": "Galati Municipal Hospital",     "latitude": 45.46, "longitude": 28.05},
+    {"nuts_id": "RO224", "type": "school",     "name": "Primary School No. 11",         "latitude": 45.43, "longitude": 28.02},
+    {"nuts_id": "RO224", "type": "school",     "name": "Vasile Alecsandri College",     "latitude": 45.44, "longitude": 28.04},
+    {"nuts_id": "RO224", "type": "powerplant", "name": "Galati South Power Station",    "latitude": 45.42, "longitude": 28.01},
     # Tulcea
-    {"nuts_id": "RO225", "type": "hospital",   "name": "Spitalul Județean Tulcea",       "latitude": 45.18, "longitude": 28.80},
-    {"nuts_id": "RO225", "type": "school",     "name": "Colegiul Delta Dunării",         "latitude": 45.19, "longitude": 28.81},
+    {"nuts_id": "RO225", "type": "hospital",   "name": "Tulcea County Hospital",       "latitude": 45.18, "longitude": 28.80},
+    {"nuts_id": "RO225", "type": "school",     "name": "Danube Delta College",          "latitude": 45.19, "longitude": 28.81},
     # Braila
-    {"nuts_id": "RO221", "type": "hospital",   "name": "Spitalul Județean Brăila",       "latitude": 45.27, "longitude": 27.96},
-    {"nuts_id": "RO221", "type": "school",     "name": "Liceul Tehnic Brăila",           "latitude": 45.28, "longitude": 27.97},
+    {"nuts_id": "RO221", "type": "hospital",   "name": "Braila County Hospital",       "latitude": 45.27, "longitude": 27.96},
+    {"nuts_id": "RO221", "type": "school",     "name": "Braila Technical High School",  "latitude": 45.28, "longitude": 27.97},
     # Iasi
-    {"nuts_id": "RO213", "type": "hospital",   "name": "Spitalul Sf. Spiridon Iași",    "latitude": 47.15, "longitude": 27.59},
-    {"nuts_id": "RO213", "type": "hospital",   "name": "Spitalul Militar Iași",         "latitude": 47.16, "longitude": 27.60},
-    {"nuts_id": "RO213", "type": "school",     "name": "Colegiul Național Iași",        "latitude": 47.14, "longitude": 27.58},
+    {"nuts_id": "RO213", "type": "hospital",   "name": "Sf. Spiridon Hospital Iasi",   "latitude": 47.15, "longitude": 27.59},
+    {"nuts_id": "RO213", "type": "hospital",   "name": "Military Hospital Iasi",        "latitude": 47.16, "longitude": 27.60},
+    {"nuts_id": "RO213", "type": "school",     "name": "Iasi National College",         "latitude": 47.14, "longitude": 27.58},
     # Bacau
-    {"nuts_id": "RO211", "type": "hospital",   "name": "Spitalul Județean Bacău",       "latitude": 46.56, "longitude": 26.92},
-    {"nuts_id": "RO211", "type": "school",     "name": "Colegiul Ferdinand Bacău",      "latitude": 46.57, "longitude": 26.93},
+    {"nuts_id": "RO211", "type": "hospital",   "name": "Bacau County Hospital",        "latitude": 46.56, "longitude": 26.92},
+    {"nuts_id": "RO211", "type": "school",     "name": "Ferdinand College Bacau",       "latitude": 46.57, "longitude": 26.93},
     # Vaslui
-    {"nuts_id": "RO216", "type": "hospital",   "name": "Spitalul Județean Vaslui",      "latitude": 46.63, "longitude": 27.73},
-    {"nuts_id": "RO216", "type": "school",     "name": "Colegiul Mihail Kogălniceanu",  "latitude": 46.64, "longitude": 27.74},
+    {"nuts_id": "RO216", "type": "hospital",   "name": "Vaslui County Hospital",       "latitude": 46.63, "longitude": 27.73},
+    {"nuts_id": "RO216", "type": "school",     "name": "Mihail Kogalniceanu College",   "latitude": 46.64, "longitude": 27.74},
     # Brasov (snowmelt risk)
-    {"nuts_id": "RO121", "type": "hospital",   "name": "Spitalul Clinic Brașov",        "latitude": 45.65, "longitude": 25.61},
-    {"nuts_id": "RO121", "type": "school",     "name": "Colegiul Național Andrei Șaguna","latitude": 45.66, "longitude": 25.62},
-    # Timis
-    {"nuts_id": "RO424", "type": "hospital",   "name": "Spitalul Județean Timișoara",   "latitude": 45.74, "longitude": 21.23},
-    {"nuts_id": "RO424", "type": "school",     "name": "Colegiul Național Banatean",    "latitude": 45.75, "longitude": 21.24},
-    # Bucuresti
-    {"nuts_id": "RO321", "type": "hospital",   "name": "Spitalul Colentina",            "latitude": 44.47, "longitude": 26.13},
-    {"nuts_id": "RO321", "type": "hospital",   "name": "Spitalul Floreasca",            "latitude": 44.46, "longitude": 26.09},
-    {"nuts_id": "RO321", "type": "school",     "name": "Colegiul Național Gh. Lazăr",   "latitude": 44.43, "longitude": 26.09},
+    {"nuts_id": "RO121", "type": "hospital",   "name": "Brasov Clinical Hospital",     "latitude": 45.65, "longitude": 25.61},
+    {"nuts_id": "RO121", "type": "school",     "name": "Andrei Saguna National College","latitude": 45.66, "longitude": 25.62},
+    # Bucharest
+    {"nuts_id": "RO321", "type": "hospital",   "name": "Colentina Hospital",            "latitude": 44.47, "longitude": 26.13},
+    {"nuts_id": "RO321", "type": "hospital",   "name": "Floreasca Emergency Hospital",  "latitude": 44.46, "longitude": 26.09},
+    {"nuts_id": "RO321", "type": "school",     "name": "Gh. Lazar National College",    "latitude": 44.43, "longitude": 26.09},
+    # Cologne
+    {"nuts_id": "DEA23", "type": "hospital",   "name": "University Hospital Cologne",   "latitude": 50.92, "longitude": 6.92},
+    # Bologna
+    {"nuts_id": "ITH55", "type": "hospital",   "name": "Sant'Orsola-Malpighi Hospital", "latitude": 44.49, "longitude": 11.36},
 ]
 
 
@@ -195,6 +188,12 @@ def seed():
         db.commit()
         print(f"   ✅ {predictions_created} predictions saved.")
 
+        # ── Generate Alerts ──────────────────────────────────────────────────
+        print(f"   🔔 Generating alerts for high-risk regions...")
+        from app.services.alert_engine import evaluate_and_create_alerts
+        new_alerts = evaluate_and_create_alerts(db)
+        print(f"   ✅ {len(new_alerts)} active alerts generated.")
+
         # ── Summary ──────────────────────────────────────────────────────────
         total_locs = db.query(Location).count()
         total_preds = db.query(FloodPrediction).count()
@@ -202,6 +201,7 @@ def seed():
         print(f"\n🎉 Seed complete!")
         print(f"   Locations:   {total_locs}")
         print(f"   Predictions: {total_preds}")
+        print(f"   Active Alerts: {len(new_alerts)}")
         print(f"   High risk:   {high_risk} regions (score >= 60)")
         print(f"\n   🚀 Start the server and open http://localhost:5173")
 

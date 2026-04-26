@@ -1,6 +1,5 @@
 /**
  * FloodSentry — Main Application
- * Task 6: Full Frontend ↔ Backend Integration
  *
  * Orchestrates:
  * - API data fetching (impact summary, predictions, infrastructure)
@@ -16,19 +15,19 @@ import { FloodSentryMap } from './map.ts';
 import type { RegionImpact, ImpactSummary, Infrastructure, Prediction, AlertRecord, SimulationTimeline } from './api.ts';
 import { jsPDF } from 'jspdf';
 
-// ── State ──────────────────────────────────────────────────────
+// State
 let impactSummary: ImpactSummary | null = null;
 let activeHazard = 'all';
 let map: FloodSentryMap;
 let locationCoords: Map<string, { lat: number; lon: number }> = new Map();
-// Task 7 state
 let currentRegion: RegionImpact | null = null;
 let currentAlerts: AlertRecord[] = [];
 let simTimeline: SimulationTimeline | null = null;
 let simPlaying = false;
 let simInterval: ReturnType<typeof setInterval> | null = null;
+let logoDataUrl: string = ''; // Pre-loaded for PDF export
 
-// ── DOM Refs ───────────────────────────────────────────────────
+// DOM Refs
 const regionsList     = document.getElementById('regions-list')!;
 const regionDetail    = document.getElementById('region-detail')!;
 const statRegions     = document.getElementById('stat-regions')!;
@@ -46,7 +45,6 @@ const btnToggle3D     = document.getElementById('btn-toggle-3d')!;
 const hazardBtns      = document.querySelectorAll<HTMLButtonElement>('.hazard-btn');
 const canvas          = document.getElementById('deck-canvas') as HTMLCanvasElement;
 const mapContainer    = document.getElementById('map-container')!;
-// Task 7 DOM refs
 const btnCapXml       = document.getElementById('btn-cap-xml')!;
 const btnPdfReport    = document.getElementById('btn-pdf-report')!;
 const btnOpenSim      = document.getElementById('btn-open-sim')!;
@@ -57,9 +55,37 @@ const simSlider       = document.getElementById('sim-slider') as HTMLInputElemen
 const simTimeLabel    = document.getElementById('sim-time-label')!;
 const simRainfall     = document.getElementById('sim-rainfall') as HTMLInputElement;
 const simRainValue    = document.getElementById('sim-rain-value')!;
+const simStormType    = document.getElementById('sim-storm-type') as HTMLSelectElement;
 const simRegionsEl    = document.getElementById('sim-regions')!;
 const simDescText     = document.getElementById('sim-desc-text')!;
 const simScenario     = document.getElementById('sim-scenario')!;
+
+// ── Image Helpers ──────────────────────────────────────────────
+async function getBase64Image(url: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Scale up for better quality in PDF
+      canvas.width = img.width * 2;
+      canvas.height = img.height * 2;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log(`[FloodSentry] Logo pre-loaded: ${url}`);
+        resolve(dataUrl);
+      } else {
+        resolve('');
+      }
+    };
+    img.onerror = () => {
+      console.error(`[FloodSentry] Failed to load logo: ${url}`);
+      resolve('');
+    };
+    img.src = url;
+  });
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatNumber(n: number): string {
@@ -235,7 +261,7 @@ function buildImpactNarrative(
 
 // ── Open Region Detail ─────────────────────────────────────────
 async function openRegionDetail(region: RegionImpact): Promise<void> {
-  // Task 7: Track current region for export actions
+  // Track current region for export actions
   currentRegion = region;
 
   // Tell map to highlight this region
@@ -367,22 +393,23 @@ btnResetData.addEventListener('click', async () => {
   }
 });
 
-// ── Test Bad Weather ───────────────────────────────────────────
+// ── Test Bad Weather (Now starts the 7-Day EU Simulator) ──────────
 btnBadWeather.addEventListener('click', async () => {
-  btnBadWeather.textContent = '⏳ Simulating…';
-  btnBadWeather.setAttribute('disabled', 'true');
+  btnBadWeather.textContent = '⏳ Preparing...';
   
   try {
-    showNotification('Simulating extreme weather across Europe...', 'info');
-    await api.triggerRefresh(true);
-    // Reload page to fetch new data
-    window.location.reload();
+    showNotification('Generating 7-Day Europe Storm Simulation...', 'info');
+    simPanel.classList.remove('hidden');
+    btnOpenSim.classList.add('active');
+    
+    await loadSimulation();
+    startSimulation();
   } catch (err) {
     console.error(err);
-    alert('Failed to simulate bad weather.');
-    btnBadWeather.innerHTML = '<span>⛈️</span> Test Bad Weather';
-    btnBadWeather.removeAttribute('disabled');
+    alert('Failed to start simulation.');
   }
+  
+  btnBadWeather.innerHTML = '<span>⛈️</span> Test Bad Weather';
 });
 
 // ── Locate Me (Galileo) ────────────────────────────────────────
@@ -423,6 +450,9 @@ async function init(): Promise<void> {
   btnToggle3D.classList.add('active');
 
   try {
+    // Pre-load logo for PDF
+    logoDataUrl = await getBase64Image('/floodsentrylogoblue.svg');
+
     // Load locations for coordinates (needed for flyTo)
     const locations = await api.getLocations();
     locations.forEach(loc => {
@@ -435,17 +465,21 @@ async function init(): Promise<void> {
     renderRegionList(impactSummary.regions);
     map.update(impactSummary.regions);
 
-    // ── Task 6 Step 3: Auto-display infrastructure for critical regions ──
+    // Auto-display infrastructure for critical regions
     const criticalInfra = await api.getCriticalInfrastructure(impactSummary.regions);
     map.updateCriticalInfrastructure(criticalInfra);
 
-    // ── Task 7: Auto-generate alerts via Alert Engine ──
+    // Auto-generate alerts via Alert Engine
     try {
-      currentAlerts = await api.evaluateAlerts();
-      console.log(`[FloodSentry] Alert Engine: ${currentAlerts.length} new alerts generated.`);
+      await api.evaluateAlerts();
+    } catch { /* ignore */ }
+    
+    // Load all active alerts
+    try {
+      currentAlerts = await api.getAlerts();
+      console.log(`[FloodSentry] ${currentAlerts.length} active alerts loaded.`);
     } catch {
-      // Fallback: load existing alerts
-      try { currentAlerts = await api.getAlerts(); } catch { currentAlerts = []; }
+      currentAlerts = [];
     }
 
     console.log(`[FloodSentry] Loaded ${impactSummary.regions.length} regions, ${criticalInfra.size} critical with infrastructure`);
@@ -465,7 +499,7 @@ async function init(): Promise<void> {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// Task 7: CAP XML Download
+// CAP XML Download
 // ══════════════════════════════════════════════════════════════════
 
 btnCapXml.addEventListener('click', async () => {
@@ -503,12 +537,13 @@ btnCapXml.addEventListener('click', async () => {
     link.click();
   } else {
     // Fallback: show notification
-    showNotification('Nu există alertă activă pentru această regiune.', 'warning');
+    const risk = currentRegion.risk_score.toFixed(1);
+    showNotification(`No active alert for ${currentRegion.nuts_id} (Risk: ${risk}%). Alerts are only generated for regions with risk >= 1%.`, 'warning');
   }
 });
 
 // ══════════════════════════════════════════════════════════════════
-// Task 7: PDF Executive Report
+// PDF Executive Report
 // ══════════════════════════════════════════════════════════════════
 
 btnPdfReport.addEventListener('click', () => {
@@ -520,22 +555,32 @@ btnPdfReport.addEventListener('click', () => {
   let y = 20;
 
   // ── Header ──
-  doc.setFontSize(22);
+  if (logoDataUrl) {
+    try {
+      // Draw blue logo icon
+      doc.addImage(logoDataUrl, 'PNG', 20, 12, 12, 14); 
+    } catch (e) {
+      console.error('PDF Logo Error:', e);
+    }
+  }
+  
+  doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(59, 130, 246); // Accent blue
-  doc.text('FloodSentry', 20, y);
+  doc.setTextColor(20, 41, 86); // Dark blue from logo
+  doc.text('FloodSentry', 35, 24);
+  
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(120, 120, 120);
-  doc.text('EU Flood Risk Digital Twin — Executive Report', 20, y + 8);
-  doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`, 20, y + 14);
+  doc.setTextColor(100, 100, 100);
+  doc.text('EU Flood Risk Digital Twin — Executive Report', 20, 34);
+  doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`, 20, 40);
 
   // Divider line
-  y += 22;
-  doc.setDrawColor(59, 130, 246);
+  y = 48;
+  doc.setDrawColor(20, 41, 86);
   doc.setLineWidth(0.5);
   doc.line(20, y, pageWidth - 20, y);
-  y += 10;
+  y += 12;
 
   // ── Alert Level Banner ──
   const alertColors: Record<string, [number, number, number]> = {
@@ -638,11 +683,11 @@ btnPdfReport.addEventListener('click', () => {
 
   // Save
   doc.save(`FloodSentry_Report_${region.nuts_id}_${new Date().toISOString().slice(0, 10)}.pdf`);
-  showNotification('Raport PDF generat cu succes!', 'success');
+  showNotification('PDF Report generated successfully!', 'success');
 });
 
 // ══════════════════════════════════════════════════════════════════
-// Task 7: Hydrologic Simulator (Time-Slider)
+// Hydrologic Simulator (Time-Slider)
 // ══════════════════════════════════════════════════════════════════
 
 btnOpenSim.addEventListener('click', async () => {
@@ -658,12 +703,18 @@ btnCloseSim.addEventListener('click', () => {
   simPanel.classList.add('hidden');
   btnOpenSim.classList.remove('active');
   stopSimulation();
+  
+  // Restore live data map
+  if (impactSummary) {
+    map.update(impactSummary.regions);
+  }
 });
 
 async function loadSimulation(): Promise<void> {
   const rainfall = parseInt(simRainfall.value);
+  const stormType = simStormType.value;
   try {
-    simTimeline = await api.getSimulationTimeline(rainfall, 7);
+    simTimeline = await api.getSimulationTimeline(rainfall, 7, stormType);
     simSlider.max = String(simTimeline.total_steps - 1);
     simSlider.value = '0';
     simScenario.textContent = simTimeline.scenario;
@@ -674,14 +725,20 @@ async function loadSimulation(): Promise<void> {
   }
 }
 
+simStormType.addEventListener('change', () => {
+  if (!simPanel.classList.contains('hidden')) {
+    loadSimulation();
+  }
+});
+
 function renderSimStep(stepIndex: number): void {
   if (!simTimeline || stepIndex >= simTimeline.steps.length) return;
 
   const step = simTimeline.steps[stepIndex];
   simTimeLabel.textContent = step.label;
 
-  // Build region cards
-  simRegionsEl.innerHTML = step.regions.map(r => {
+  // Build region cards (Top 5 only)
+  simRegionsEl.innerHTML = step.regions.slice(0, 5).map(r => {
     const fillWidth = Math.min(100, r.risk_score);
     const barColor = riskColor(r.risk_score);
     const activeClass = r.wave_active ? 'sim-wave-active' : '';
@@ -695,16 +752,32 @@ function renderSimStep(stepIndex: number): void {
           <div class="sim-risk-fill" style="width:${fillWidth}%;background:${barColor}"></div>
         </div>
         <div class="sim-region-meta">
-          <span>${r.wave_active ? '🌊 Wave Active' : '—'}</span>
+          <span>${r.wave_active ? '🌊 Storm' : '—'}</span>
           <span>🌧️ ${r.rainfall_mm.toFixed(0)}mm</span>
         </div>
       </div>
     `;
   }).join('');
 
+  // Update map in real-time (and pass rainfall to show clouds)
+  const simRegionsAsImpact: RegionImpact[] = step.regions.map(r => ({
+    nuts_id: r.nuts_id,
+    region_name: r.name,
+    risk_score: r.risk_score,
+    hazard_type: 'pluvial',
+    affected_population: Math.floor(r.risk_score * 2500), // simulated pop
+    infrastructure_at_risk: [],
+    alert_level: r.alert_level as 'info'|'warning'|'critical'|'emergency',
+    summary_text: r.description,
+    rainfall_mm: r.rainfall_mm,
+    latitude: r.lat,
+    longitude: r.lon
+  }));
+  map.update(simRegionsAsImpact);
+
   // Description
-  const activeRegion = step.regions.find(r => r.wave_active && r.risk_score > 30);
-  simDescText.textContent = activeRegion?.description || 'Simulation starting — monitoring upstream conditions.';
+  const activeRegion = step.regions.find(r => r.risk_score > 60);
+  simDescText.textContent = activeRegion?.description || step.regions[0]?.description || 'Monitoring Europe...';
 }
 
 btnSimPlay.addEventListener('click', () => {
@@ -716,6 +789,11 @@ btnSimPlay.addEventListener('click', () => {
 });
 
 function startSimulation(): void {
+  // Clear any existing interval to prevent ghost loops
+  if (simInterval) {
+    stopSimulation();
+  }
+  
   simPlaying = true;
   btnSimPlay.textContent = '⏸';
   btnSimPlay.classList.add('playing');

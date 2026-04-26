@@ -5,7 +5,7 @@ echo ==========================================
 
 :: Start Backend in a new window
 echo Starting Backend on port 8001...
-start "FloodSentry Backend" cmd /k "cd backend && set PYTHONIOENCODING=utf-8 && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001"
+start "FloodSentry Backend" cmd /k "cd backend && if exist venv\Scripts\activate.bat (call venv\Scripts\activate.bat) && set PYTHONIOENCODING=utf-8 && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001"
 
 :: Wait a few seconds for backend to initialize
 timeout /t 3 /nobreak > nul

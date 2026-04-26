@@ -35,13 +35,13 @@ def _build_summary_text(
     infra_items: list[InfrastructureAtRisk],
 ) -> str:
     """Build a human-readable impact summary string."""
-    level_ro = {
-        "emergency": "Urgență Maximă",
-        "critical": "Risc Critic",
-        "warning": "Avertizare",
-        "info": "Informare",
+    level_labels = {
+        "emergency": "Maximum Emergency",
+        "critical": "Critical Risk",
+        "warning": "Warning",
+        "info": "Information",
     }
-    parts = [f"{level_ro.get(alert_level, alert_level)} în {nuts_id} ({region_name})."]
+    parts = [f"{level_labels.get(alert_level, alert_level.capitalize())} in {nuts_id} ({region_name})."]
 
     if infra_items:
         asset_parts = []
@@ -50,14 +50,14 @@ def _build_summary_text(
                 asset_parts.append(item.names[0] if item.names else item.type)
             else:
                 asset_parts.append(f"{item.count} {item.type}s")
-        parts.append("Infrastructură la risc: " + ", ".join(asset_parts) + ".")
+        parts.append("Infrastructure at risk: " + ", ".join(asset_parts) + ".")
 
     return " ".join(parts)
 
 
 @router.get("/summary", response_model=ImpactSummaryResponse)
 def get_impact_summary(
-    min_risk: float = Query(default=30.0, ge=0, le=100),
+    min_risk: float = Query(default=1.0, ge=0, le=100),
     db: Session = Depends(get_db),
 ):
     """Return an aggregated impact summary across all NUTS regions.
