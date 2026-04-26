@@ -1,14 +1,13 @@
-"""Application configuration using pydantic-settings."""
-
+import os
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
+# Calculate absolute path for the database
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(BASE_DIR, "floodsentry.db")
 
 class Settings(BaseSettings):
-    """FloodSentry application settings.
-
-    Loaded from environment variables and .env file.
-    """
+    """FloodSentry application settings."""
 
     # Application
     APP_NAME: str = "FloodSentry"
@@ -16,7 +15,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "sqlite:///./floodsentry.db"
+    DATABASE_URL: str = f"sqlite:///{DB_PATH}"
 
     # Copernicus / Sentinel Hub
     SENTINEL_HUB_CLIENT_ID: str = ""
